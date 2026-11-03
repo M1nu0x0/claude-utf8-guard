@@ -1,0 +1,1 @@
+# claude-utf8-guard
