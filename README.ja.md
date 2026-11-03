@@ -156,6 +156,7 @@ plugins/utf8-guard/
 .github/ci/
   engine-session-start.sh  ログインなしで実際の Claude Code により SessionStart フックを確認
 site/                   GitHub Pages サイト（Astro）: src/site.json 翻訳、src/pages/ ページ
+package.json, tsconfig.json  フックとテストの型チェック（tsc --checkJs）
 README.en.md, README.ja.md  README の翻訳
 ```
 
@@ -166,6 +167,7 @@ README.en.md, README.ja.md  README の翻訳
 ```sh
 claude plugin validate .                     # マーケットプレイス
 claude plugin validate plugins/utf8-guard     # プラグイン
+npm ci && npm run typecheck                 # フックとテストの型チェック（JSDoc、tsc --checkJs）
 node --test 'plugins/utf8-guard/tests/*.test.mjs'
 bash .github/ci/engine-session-start.sh      # ログインなしで実際の Claude Code により SessionStart フックを確認
 cd site && npm ci && npm run build           # サイトのビルドとチェック（site/dist）
@@ -174,6 +176,8 @@ cd site && npm run og                         # 言語別のリンクプレビ�
 ```
 
 `hooks/hangul.mjs` は EUC-KR のバイト B0A1〜C8FE を、`hooks/kanji.mjs` は EUC-JP のバイト B0A1〜F4FE をデコードして作った表です。テストが同じ方法で作り直して比べます。
+
+フックは Claude Code が `node` でそのまま実行する JavaScript（`.mjs`）なので、ビルドの段階がなく Node 18 でも動きます。その代わりすべてのファイルに `// @ts-check` と JSDoc の型を付け、`npm run typecheck` が `tsc` で厳密に（`strict`）チェックします。TypeScript は開発用の依存関係で、プラグインのインストールでは取得しません。
 
 サイトは [Astro](https://astro.build) と共通キット [claude-plugin-site](https://github.com/M1nu0x0/claude-plugin-site) で作っています。文言はすべて `site/src/site.json` に、セクションの順序は `site/src/pages/[...lang].astro` にあります。`npm run build` は言語別のページ（`/`、`/ko/`、`/ja/`）と `sitemap.xml` を作ったあと、クローラーが読むとおりにチェックし（タイトルと説明の長さ、canonical、hreflang、OG、JSON-LD、リンク切れと画像、HTML の検証）、一つでも外れれば失敗します。main にマージされると Pages ワークフローがビルドしてデプロイします。ページの JSON-LD にプラグインのバージョンが入るので、バージョンを上げるとサイトも再デプロイされます。文言を変えたら `site/src/site.json` の `updated` もその日の日付にします。変えないと PR で CI が警告します。`ask`、`answer`、`ogImageLine`、`ogImageText` を変えたら `npm run og` で `site/public/images/og*.png` も作り直してコミットします。
 

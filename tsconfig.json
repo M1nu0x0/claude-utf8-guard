@@ -1,0 +1,16 @@
+{
+  // Type checks the hooks and their tests from JSDoc, under strict, and emits nothing: Claude Code runs the .mjs
+  // hooks with node as they are, on Node 18 or later. The site has its own setup under site/.
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    "types": ["node"],
+    "skipLibCheck": true
+  },
+  "include": ["plugins/*/hooks/**/*.mjs", "plugins/*/tests/**/*.mjs"]
+}

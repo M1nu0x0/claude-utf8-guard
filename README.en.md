@@ -154,6 +154,7 @@ plugins/utf8-guard/
 .github/ci/
   engine-session-start.sh  checks the SessionStart hook with the real Claude Code, without a login
 site/                   GitHub Pages site (Astro): src/site.json translations, src/pages/ page
+package.json, tsconfig.json  type check for the hooks and tests (tsc --checkJs)
 README.en.md, README.ja.md  README translations
 ```
 
@@ -164,6 +165,7 @@ The plugin lives in `plugins/utf8-guard/` and the marketplace points at it by re
 ```sh
 claude plugin validate .                     # marketplace
 claude plugin validate plugins/utf8-guard     # plugin
+npm ci && npm run typecheck                 # type check the hooks and tests (JSDoc, tsc --checkJs)
 node --test 'plugins/utf8-guard/tests/*.test.mjs'
 bash .github/ci/engine-session-start.sh      # SessionStart hook with the real Claude Code, without a login
 cd site && npm ci && npm run build           # build and check the site (site/dist)
@@ -172,6 +174,8 @@ cd site && npm run og                         # per-language link-preview images
 ```
 
 `hooks/hangul.mjs` was made by decoding the EUC-KR bytes B0A1 to C8FE, and `hooks/kanji.mjs` the EUC-JP bytes B0A1 to F4FE; the tests make it again the same way and compare.
+
+The hooks are JavaScript (`.mjs`) that Claude Code runs with `node` as they are, so there is no build step and they run on Node 18. Every file has `// @ts-check` and JSDoc types instead, and `npm run typecheck` checks them with `tsc` under `strict`. TypeScript is a dev dependency, not something installing the plugin fetches.
 
 The site is built with [Astro](https://astro.build) and the shared kit [claude-plugin-site](https://github.com/M1nu0x0/claude-plugin-site). All its words are in `site/src/site.json`, and the order of the sections is in `site/src/pages/[...lang].astro`. `npm run build` writes one page per language (`/`, `/ko/`, `/ja/`) and `sitemap.xml`, then checks them as a crawler reads them (title and description length, canonical, hreflang, Open Graph, JSON-LD, broken links and images, HTML validity) and fails on any problem. A merge to main builds and deploys it with the Pages workflow. The page's JSON-LD carries the plugin version, so a version bump redeploys the site. When the words change, set `updated` in `site/src/site.json` to that day; CI warns on a pull request that does not. When `ask`, `answer`, `ogImageLine` or `ogImageText` change, redraw `site/public/images/og*.png` with `npm run og` and commit them.
 

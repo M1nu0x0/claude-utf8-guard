@@ -1,3 +1,4 @@
+// @ts-check
 // SessionStart: tells the model to write non-ASCII text in tool calls as UTF-8, never as \uXXXX escapes, and tells
 // the person when the upstream bug is fixed so they can turn this plugin off.
 import { spawn } from 'node:child_process'
@@ -16,6 +17,7 @@ const INSTRUCTION =
   `(anthropics/claude-code#${ISSUE}). An escape that is part of code or data you are copying exactly, such as ` +
   '"\\u200b" in a source file, stays as it is.'
 
+/** @param {import('./upstream.mjs').Cache} cache @returns {string} */
 function fixedNotice(cache) {
   const when = cache.closedAt ? ` on ${cache.closedAt.slice(0, 10)}` : ''
   return (
@@ -27,12 +29,13 @@ function fixedNotice(cache) {
 
 const input = await readInput()
 const dir = dataDir()
+/** @type {{ hookSpecificOutput: { hookEventName: string, additionalContext: string }, systemMessage?: string }} */
 const out = { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: INSTRUCTION } }
 
 if (option('upstream_check')) {
   const cache = readCache(dir)
   // Once per session, not again on resume, clear or compact.
-  if ((input.source ?? 'startup') === 'startup' && isFixed(cache)) out.systemMessage = fixedNotice(cache)
+  if ((input.source ?? 'startup') === 'startup' && isFixed(cache)) out.systemMessage = fixedNotice(/** @type {import('./upstream.mjs').Cache} */ (cache))
   if (isStale(cache)) {
     const upstream = join(fileURLToPath(new URL('.', import.meta.url)), 'upstream.mjs')
     spawn(process.execPath, [upstream, dir], { detached: true, stdio: 'ignore', windowsHide: true }).unref()

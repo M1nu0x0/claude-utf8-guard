@@ -1,3 +1,4 @@
+// @ts-check
 // The 6,355 kanji of JIS X 0208 levels 1 and 2, the set Shift_JIS and EUC-JP encode, in code point order. Japanese
 // text is written almost entirely with these; a CJK ideograph with one wrong hex digit lands outside them about 66%
 // of the time. Generated: decode EUC-JP bytes B0A1-F4FE (tests/utf8-guard.test.mjs checks it again).

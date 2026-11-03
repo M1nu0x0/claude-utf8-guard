@@ -1,3 +1,4 @@
+// @ts-check
 // PreToolUse: holds a tool call back once when its input looks broken by a \uXXXX escape, and tells the model why.
 // The same call sent again unchanged goes through, so a rare syllable that was meant (a name, slang) costs one
 // round trip and never blocks the work.

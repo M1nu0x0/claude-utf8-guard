@@ -6,6 +6,15 @@ updates:
     schedule:
       interval: weekly
 
+  # The type check: TypeScript and the Node types.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dev:
+        patterns: ["*"]
+
   # The site's build: Astro and the shared site kit.
   - package-ecosystem: npm
     directory: /site
