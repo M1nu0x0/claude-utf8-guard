@@ -1,0 +1,27 @@
+{
+  "name": "utf8-guard",
+  "version": "0.1.0",
+  "description": "Keeps Korean, Japanese and Chinese in tool calls as UTF-8 instead of \\uXXXX escapes that turn into wrong characters, holds back calls whose text looks broken, and says when the upstream bug is fixed",
+  "author": {
+    "name": "M1nu0x0",
+    "url": "https://github.com/M1nu0x0"
+  },
+  "homepage": "https://m1nu0x0.github.io/claude-utf8-guard/",
+  "repository": "https://github.com/M1nu0x0/claude-utf8-guard",
+  "license": "MIT",
+  "keywords": ["claude-code", "plugin", "hooks", "utf-8", "unicode", "cjk", "korean", "hangul", "japanese", "chinese"],
+  "userConfig": {
+    "upstream_check": {
+      "type": "boolean",
+      "title": "Notify when fixed upstream",
+      "description": "Once a day, ask GitHub whether anthropics/claude-code#83033 is closed as fixed, and say so at session start so you can turn this plugin off",
+      "default": true
+    },
+    "hangul_check": {
+      "type": "boolean",
+      "title": "Check Korean syllables",
+      "description": "Hold a tool call back once when it contains Hangul syllables outside the 2,350 of KS X 1001, the usual result of a broken escape",
+      "default": true
+    }
+  }
+}

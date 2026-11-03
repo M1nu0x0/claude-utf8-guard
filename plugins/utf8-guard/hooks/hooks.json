@@ -1,0 +1,29 @@
+{
+  "description": "Keeps non-ASCII text in tool calls as UTF-8 instead of \\uXXXX escapes, and says when the upstream bug is fixed",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.mjs"],
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
