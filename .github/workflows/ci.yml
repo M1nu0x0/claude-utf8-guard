@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  # Daily against the latest Claude Code, which can change how hooks are started and what they receive,
+  # and to see whether the upstream issue has been fixed.
+  schedule:
+    - cron: "17 18 * * *" # 03:17 KST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Record the Claude Code version
+        shell: bash
+        run: echo "::notice title=Claude Code (${{ runner.os }})::$(claude --version)"
+
+      - name: Validate the marketplace
+        run: claude plugin validate .
+
+      - name: Validate the plugin
+        run: claude plugin validate plugins/utf8-guard
+
+      - name: Unit tests
+        run: node --test 'plugins/utf8-guard/tests/*.test.mjs'
+
+      - name: Unit tests on the oldest Node the hooks support
+        if: runner.os == 'Linux'
+        run: npx --yes node@18 --test plugins/utf8-guard/tests/utf8-guard.test.mjs
+
+      - name: Build the site and check it as a crawler reads it
+        if: runner.os == 'Linux'
+        working-directory: site
+        run: |
+          npm ci
+          npm run build
+
+      - name: The sitemap's lastmod moves with the site's text
+        if: runner.os == 'Linux' && github.event_name == 'pull_request'
+        working-directory: site
+        run: |
+          git fetch -q --depth=1 origin "$GITHUB_BASE_REF"
+          npx plugin-site lastmod FETCH_HEAD
+
+      - name: Engine SessionStart (without login)
+        timeout-minutes: 3
+        shell: bash
+        run: bash .github/ci/engine-session-start.sh
+
+  upstream:
+    name: upstream issue
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+    steps:
+      - name: Check anthropics/claude-code#83033
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state=$(gh api repos/anthropics/claude-code/issues/83033 --jq '.state + " " + (.state_reason // "")')
+          echo "::notice title=anthropics/claude-code#83033::$state"
+          case "$state" in
+            "closed completed")
+              echo "::warning title=upstream fixed::anthropics/claude-code#83033 is closed as completed. Check whether Claude still writes broken \\uXXXX escapes, and if not retire this plugin." ;;
+          esac

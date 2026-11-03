@@ -1,0 +1,101 @@
+---
+// One page per language (/, /ko/, /ja/). The words are in src/site.json; this file is the order of the sections.
+import site from 'virtual:plugin-site'
+import { staticPaths } from '@m1nu0x0/claude-plugin-site'
+import PluginPage from '@m1nu0x0/claude-plugin-site/components/PluginPage.astro'
+import Hero from '@m1nu0x0/claude-plugin-site/components/Hero.astro'
+import Install from '@m1nu0x0/claude-plugin-site/components/Install.astro'
+import Faq from '@m1nu0x0/claude-plugin-site/components/Faq.astro'
+
+export const getStaticPaths = () => staticPaths(site)
+
+const { lang } = Astro.props
+const t = site.languages[lang].strings
+
+// Two TodoWrite calls as the model streams them, and the card each one draws. JSON and Korean, not translated:
+// the first is the escape-written call from anthropics/claude-code#83033, the second the same call in UTF-8.
+const before = `<span class="p">tool_use</span> TodoWrite {"content": "\\uc810<span class="err">\\uae54</span>\\ub3c4 \\uc644<span class="err">\\ub9b7</span>\\ub41c"}
+<span class="p">card</span>  ☐ 점<span class="err">깔</span>도 완<span class="err">릷</span>된`
+const after = `<span class="p">tool_use</span> TodoWrite {"content": "점검도 완료된"}
+<span class="p">card</span>  ☐ 점검도 완료된`
+
+// Related anthropics/claude-code issues, each with a live state badge and a line in strings (i<number>).
+const groups = [
+  ['issuesCause', [83033]],
+  ['issuesSame', [80009, 78996, 57981, 53665, 82588, 79339, 61670, 69522, 56003, 78568, 59649]],
+  ['issuesTools', [99361, 72957]],
+  ['issuesHooks', [93311, 96285]],
+] as const
+const issueUrl = (n: number) => `https://github.com/anthropics/claude-code/issues/${n}`
+const badge = (n: number) => `https://img.shields.io/github/issues/detail/state/anthropics/claude-code/${n}?label=`
+---
+<PluginPage lang={lang}>
+  <Hero slot="hero" lang={lang} />
+
+  <Install lang={lang} />
+
+  <section aria-labelledby="screens">
+    <h2 id="screens" set:html={t.screensTitle} />
+    <div class="screens even">
+      <figure>
+        <pre tabindex="0"><code set:html={before} /></pre>
+        <figcaption set:html={t.beforeCap} />
+      </figure>
+      <figure>
+        <pre tabindex="0"><code set:html={after} /></pre>
+        <figcaption set:html={t.afterCap} />
+      </figure>
+    </div>
+  </section>
+
+  <section aria-labelledby="why">
+    <h2 id="why" set:html={t.whyTitle} />
+    <p set:html={t.why1} />
+    <p set:html={t.why2} />
+    <p set:html={t.why3} />
+  </section>
+
+  <section aria-labelledby="how">
+    <h2 id="how" set:html={t.howTitle} />
+    <p set:html={t.how1} />
+    <p set:html={t.how2} />
+    <p set:html={t.how3} />
+  </section>
+
+  <section aria-labelledby="checks">
+    <h2 id="checks" set:html={t.checksTitle} />
+    <p set:html={t.checksLead} />
+    <dl class="os">
+      <dt set:html={t.checkHangulTerm} /><dd set:html={t.checkHangul} />
+      <dt set:html={t.checkSurrogateTerm} /><dd set:html={t.checkSurrogate} />
+      <dt><code>U+FFFD</code></dt><dd set:html={t.checkFffd} />
+      <dt><code>\uXXXX</code></dt><dd set:html={t.checkLiteral} />
+    </dl>
+    <p class="not-fixed" set:html={t.notFixed} />
+  </section>
+
+  <section aria-labelledby="issues">
+    <h2 id="issues" set:html={t.issuesTitle} />
+    <p set:html={t.issuesLead} />
+    {groups.map(([title, numbers]) => (
+      <>
+        <h3 set:html={t[title]} />
+        <dl class="os">
+          {numbers.map(n => (
+            <dt><a href={issueUrl(n)}>#{n}</a></dt>
+            <dd><img src={badge(n)} alt="" height="20" loading="lazy" decoding="async"><span set:html={t[`i${n}`]} /></dd>
+          ))}
+        </dl>
+      </>
+    ))}
+  </section>
+
+  <Faq lang={lang} />
+</PluginPage>
+
+<style is:global>
+  /* Issue list: the state badge before each line. */
+  dl.os dd img { vertical-align: -3px; margin-right: 6px; }
+  .not-fixed { margin-top: 18px; }
+  #issues h3 { margin-top: 22px; }
+</style>

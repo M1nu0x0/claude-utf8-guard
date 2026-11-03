@@ -1,0 +1,6 @@
+{
+  "name": "claude-utf8-guard",
+  "owner": { "name": "M1nu0x0", "url": "https://github.com/M1nu0x0" },
+  "description": "A Claude Code plugin that keeps Korean, Japanese and Chinese in tool calls as UTF-8 instead of \\uXXXX escapes that turn into wrong characters",
+  "plugins": [{ "name": "utf8-guard", "source": "./plugins/utf8-guard" }]
+}
