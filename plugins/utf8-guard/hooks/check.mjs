@@ -2,11 +2,17 @@
 //
 // Claude Code hands the hook the input after it has decoded the model's JSON, so a \uXXXX escape the model wrote
 // has already become a character here. The hook cannot see the escape, only what it turned into: a lone surrogate,
-// U+FFFD, a Hangul syllable Korean text almost never uses, or, when the model escaped the backslash too, the escape
-// itself as text.
+// U+FFFD, a Hangul syllable Korean text almost never uses, a kanji Japanese text almost never uses, or, when the
+// model escaped the backslash too, the escape itself as text. The two character checks look at the result, so they
+// also catch a wrong character the model wrote without any escape.
 import { COMMON_HANGUL } from './hangul.mjs'
+import { COMMON_KANJI } from './kanji.mjs'
 
 const COMMON = new Set(COMMON_HANGUL)
+
+// JIS X 0208 plus the kanji Japanese text uses that it lacks: three of the 2010 joyo additions (剝 頰 塡; the fourth,
+// 𠮟, is outside the BMP and never checked) and 髙, common in names.
+const COMMON_JA = new Set(COMMON_KANJI + '剝頰塡髙')
 
 // Tools whose input is code or a shell command, where a literal \uXXXX in the text can be meant.
 const CODE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit', 'Bash', 'PowerShell'])
@@ -15,8 +21,12 @@ const CODE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit', 'Bash'
 const READ_TOOLS = new Set(['Read', 'Glob', 'Grep', 'LS', 'NotebookRead', 'WebSearch', 'ToolSearch'])
 
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g
-const HANGUL_SYLLABLE = /[가-힣]/g
+const HANGUL_SYLLABLE = /[\uAC00-\uD7A3]/g
 const LITERAL_ESCAPE = /\\u([0-9a-fA-F]{4})/g
+const KANJI = /[\u4E00-\u9FFF]/g
+// Hiragana or katakana: the string is Japanese, so its kanji can be checked against JIS X 0208. A string of hanzi
+// with no kana may be Chinese, where simplified and traditional forms outside JIS are normal, so it is left alone.
+const KANA = /[\u3041-\u3096\u30A1-\u30FA]/
 
 // Hangul, CJK ideographs, kana and CJK punctuation: what a literal \uXXXX should never stand for in plain text.
 const isCjk = cp =>
@@ -41,7 +51,7 @@ function around(text, index, length) {
 }
 
 // Returns a list of { kind, items } for the problems in one tool call's input; an empty list means let it through.
-export function findProblems(toolName, input, { hangul = true } = {}) {
+export function findProblems(toolName, input, { hangul = true, kanji = true } = {}) {
   if (READ_TOOLS.has(toolName)) return []
   const texts = strings(input)
   const problems = []
@@ -51,7 +61,7 @@ export function findProblems(toolName, input, { hangul = true } = {}) {
   if (lone.size) problems.push({ kind: 'lone-surrogate', items: [...lone].map(([c, at]) => `${c} near "${at}"`) })
 
   const fffd = new Map()
-  for (const t of texts) for (let i = t.indexOf('�'); i !== -1; i = t.indexOf('�', i + 1)) fffd.set(around(t, i, 1), true)
+  for (const t of texts) for (let i = t.indexOf('\uFFFD'); i !== -1; i = t.indexOf('\uFFFD', i + 1)) fffd.set(around(t, i, 1), true)
   if (fffd.size) problems.push({ kind: 'replacement', items: [...fffd.keys()].map(at => `U+FFFD in "${at}"`) })
 
   if (!CODE_TOOLS.has(toolName)) {
@@ -71,6 +81,15 @@ export function findProblems(toolName, input, { hangul = true } = {}) {
     if (rare.size) problems.push({ kind: 'rare-hangul', items: [...rare].map(([c, at]) => `${c} (${hex(c)}) in "${at}"`) })
   }
 
+  if (kanji) {
+    const rare = new Map()
+    for (const t of texts) {
+      if (!KANA.test(t)) continue
+      for (const m of t.matchAll(KANJI)) if (!COMMON_JA.has(m[0])) rare.set(m[0], around(t, m.index, 1))
+    }
+    if (rare.size) problems.push({ kind: 'rare-kanji', items: [...rare].map(([c, at]) => `${c} (${hex(c)}) in "${at}"`) })
+  }
+
   return problems
 }
 
@@ -79,11 +98,12 @@ const HEADINGS = {
   replacement: 'The replacement character U+FFFD, left where a character failed to decode',
   'literal-escape': 'A \\uXXXX escape written out as text instead of the character it stands for',
   'rare-hangul': 'Hangul syllables Korean text almost never uses, the usual result of a \\uXXXX escape with a wrong hex digit',
+  'rare-kanji': 'Kanji in Japanese text that are outside JIS X 0208, such as a simplified Chinese form or a rare neighbour of the intended character',
 }
 
 // The reason the model reads when the call is held back.
 export function reason(toolName, problems) {
-  const lines = [`utf8-guard held this ${toolName} call back once. Its input may contain characters broken by a \\uXXXX escape (anthropics/claude-code#83033):`]
+  const lines = [`utf8-guard held this ${toolName} call back once. Its input may contain broken characters, often from a \\uXXXX escape with a wrong hex digit (anthropics/claude-code#83033):`]
   for (const p of problems) lines.push(`- ${HEADINGS[p.kind]}: ${p.items.slice(0, 8).join(', ')}${p.items.length > 8 ? ', ...' : ''}`)
   lines.push(
     'Check those characters against what you meant, then send the call again with every non-ASCII character written as itself in UTF-8, never as a \\uXXXX escape.',

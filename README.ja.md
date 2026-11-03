@@ -7,15 +7,17 @@
 
 [한국어](README.md) | [English](README.en.md) | **日本語**
 
-Claude がツール呼び出しの韓国語、日本語、中国語を `\uXXXX` エスケープで書き、別の文字に化けさせるのを防ぐ Claude Code プラグインです。
+Claude がツール呼び出しの日本語、韓国語、中国語を別の文字に化けさせるのを防ぐ Claude Code プラグインです。
 
-AskUserQuestion、TodoWrite、Notion や Jira の MCP ツールなどのツール呼び出しで、Claude は韓国語を文字ではなく `\uXXXX` エスケープで書くことがあります。16 進数を間違えると、エスケープは別の実在する音節にデコードされるので、誰かが読むまで壊れていることに気づきません。このプラグインはセッション開始時に UTF-8 のまま書くよう Claude に伝え、ツール呼び出しの前に毎回、壊れて見える文字があればその呼び出しを一度止めます。原因の issue が修正されたら、セッション開始時にプラグインを無効にしてよいとお知らせします。
+日本語では、Notion MCP の呼び出しで `揃え` が `諿え`、`側` が簡体字の `侧` になったという報告があります（[#54051](https://github.com/anthropics/claude-code/issues/54051)）。韓国語では、Claude が文字を `\uXXXX` エスケープで書いて 16 進数を間違え、実在する別の音節になることが確認されています（[#83033](https://github.com/anthropics/claude-code/issues/83033)）。
+
+AskUserQuestion、TodoWrite、Notion や Jira の MCP ツールなどのツール呼び出しで、Claude は韓国語を文字ではなく `\uXXXX` エスケープで書くことがあります。16 進数を間違えると、エスケープは別の実在する音節にデコードされるので、誰かが読むまで壊れていることに気づきません。日本語の例も同じで、壊れた文字が実在する漢字なので目立ちません。このプラグインはセッション開始時に UTF-8 のまま書くよう Claude に伝え、ツール呼び出しの前に毎回、壊れて見える文字があればその呼び出しを一度止めます。原因の issue が修正されたら、セッション開始時にプラグインを無効にしてよいとお知らせします。
 
 **[Website](https://m1nu0x0.github.io/claude-utf8-guard/ja/) · [Releases](https://github.com/M1nu0x0/claude-utf8-guard/releases) · [Changelog](CHANGELOG.md)**
 
 | Claude が書いたツール入力 | 画面に表示される文字 |
 | --- | --- |
-| `{"content": "점깔도 완릷된"}`（エスケープ、16 進数が間違っている） | 점**깔**도 완**릷**된 |
+| `{"content": "\uc810\uae54\ub3c4 \uc644\ub9b7\ub41c"}`（エスケープ、16 進数が間違っている） | 점**깔**도 완**릷**된 |
 | `{"content": "점검도 완료된"}`（このプラグインが勧める UTF-8） | 점검도 완료된 |
 
 ## 作った理由
@@ -23,6 +25,8 @@ AskUserQuestion、TodoWrite、Notion や Jira の MCP ツールなどのツー�
 [anthropics/claude-code#83033](https://github.com/anthropics/claude-code/issues/83033)（*Sonnet 5 writes Korean tool-call parameters as \uXXXX escapes and mis-spells the hex*）のためです。
 
 この issue の作成者は、韓国語のツール呼び出しをエスケープで書かせた実行と UTF-8 で書かせた実行を比べました。エスケープで書いた実行は 45 回すべてでハングルの一部（音節の約 3〜5%）が壊れ、UTF-8 で書かせた実行は 30 回中 1 回と 30 回中 0 回でした。壊れた文字は `점검` → `점깔`、`코딩` → `코딅` のようにすべて実在するハングルなので、U+FFFD のようには目立ちません。コメントでは Opus 5 や、Notion と Jira の MCP 書き込みツールでも同じ症状が報告されています。
+
+日本語でも起きています。[#54051](https://github.com/anthropics/claude-code/issues/54051) は Notion MCP の呼び出しで `揃え` → `諿え`、`処分` → `処勭`、`側` → `侧`、`億` → `亿`（後の 2 つは簡体字）になったと報告し、[#59649](https://github.com/anthropics/claude-code/issues/59649) は AskUserQuestion で `叩き` → `鯰し`、`再起動` → `在控`、`鳴る` → `鳥る` になったと報告しています。どちらもエスケープが原因かどうかは確認されていません。そのためこのプラグインは、原因ではなく結果をチェックします。
 
 Claude Code 側の回答は、CLI はエスケープをそのままデコードするだけで間違ったコードポイントは直せず、この issue はモデルチームに渡した、というものでした。同じ症状の他の報告はほとんどが修正されないまま閉じられています（下の関連 issue）。#83033 が修正済みとして閉じられればこのプラグインは不要になるので、そのときリポジトリをアーカイブする予定です。プラグインはセッション開始時に、CI は毎日 #83033 の状態を確認します。
 
@@ -46,7 +50,7 @@ Claude Desktop では、プロンプト横の `+` → Plugins → Add marketplac
 
 ## 動作
 
-1. **セッション開始（`SessionStart`）**: Claude に指示を 1 行加えます（`additionalContext`）。ツール呼び出しの非 ASCII 文字は `\uXXXX` エスケープではなく UTF-8 の文字そのままで書き、そのまま写すコードの中のエスケープ（ソースファイルの `"​"` など）だけは例外とする、という内容です。#83033 で効果が確認された回避策です。startup、resume、clear、compact のたびに加えます。
+1. **セッション開始（`SessionStart`）**: Claude に指示を 1 行加えます（`additionalContext`）。ツール呼び出しの非 ASCII 文字は `\uXXXX` エスケープではなく UTF-8 の文字そのままで書き、そのまま写すコードの中のエスケープ（ソースファイルの `"\u200b"` など）だけは例外とする、という内容です。#83033 で効果が確認された回避策です。startup、resume、clear、compact のたびに加えます。
 2. **ツール呼び出しの前（`PreToolUse`）**: 入力のすべての文字列をチェックします（下の表）。引っかかれば呼び出しを拒否（`deny`）し、どの文字がどこにあるかを Claude に伝え、ユーザーにも 1 行表示します（`systemMessage`）。同じセッションで同じ呼び出しを変えずにもう一度送れば通ります。意図したまれな語なら 1 往復増えるだけで、作業は止まりません。
 3. **原因の issue の確認**: セッション開始フックはプラグインのデータフォルダ（`CLAUDE_PLUGIN_DATA`）のキャッシュを読むだけなので、ネットワークを待ちません。キャッシュが 1 日経っていれば、バックグラウンドのプロセスが GitHub API に #83033 の状態を一度問い合わせ、次のセッションのために保存します。#83033 が **completed** として閉じられていれば、新しいセッションの開始時（startup）に次のように表示します。not planned や stale で閉じられたのは修正されたという意味ではないので、表示しません。
 
@@ -63,15 +67,16 @@ Claude Code はフックに渡す前に、モデルが書いた JSON をデコ�
 | 症状 | 例 | チェック | このプラグイン |
 | --- | --- | --- | --- |
 | 16 進数の誤りでまれな音節になる | `완료` → `완릷`、`코딩` → `코딅`、`멀쩡` → `멀잩` | KS X 1001（EUC-KR）の 2,350 字にないハングル音節 | 防ぐ。1 桁の誤りの約 70% |
+| 間違った漢字がまれな漢字になる | `揃え` → `諿え`、`処分` → `処勭`、`側` → `侧`（簡体字） | かなを含む文章で、JIS X 0208（Shift_JIS）の 6,355 字にない漢字 | 防ぐ。1 桁の誤りの約 66%。かなを含まない文章（中国語かもしれない）はチェックしない |
 | 片方だけのサロゲート | `\uD83A` だけがあり、API が 400 で拒否してセッションが止まる | 対になっていない U+D800〜DFFF | 防ぐ |
 | デコードの失敗 | `한�글` | U+FFFD | 防ぐ |
-| エスケープがテキストのまま残る | AskUserQuestion に `점검` がそのまま表示される | コード以外のツールで、ハングル、かな、漢字を指す `\uXXXX` のテキスト | 防ぐ |
+| エスケープがテキストのまま残る | AskUserQuestion に `\uc810\uac80` がそのまま表示される | コード以外のツールで、ハングル、かな、漢字を指す `\uXXXX` のテキスト | 防ぐ |
 | 16 進数の誤りでよく使う音節になる | `잡히지` → `잡힐지`、`점검` → `점깔` | 区別する方法がない | 防げない。指示による予防のみ |
-| 間違った漢字 | 形の似た別の漢字 | 別の実在する文字なので区別できない | 防げない。指示による予防のみ |
+| 間違った漢字がよく使う漢字になる | `鳴る` → `鳥る`、`再起動` → `在控`、中国語の文章の間違った漢字 | 別の実在する文字なので区別できない | 防げない。指示による予防のみ |
 | エスケープ途中のグリッチで JSON が壊れる | #79339 | フックより前に Claude Code が拒否する（#93311） | 防げない。指示による予防のみ |
 | エスケープなしで間違う音節 | `새벽` → `새벅`（#83033、実行の 0.3〜0.4%） | KS X 1001 の外なら検出 | 一部のみ |
 
-まれな音節のチェックは `똠`、`햏`、`뷁`、`쌰` のような実在する語にも引っかかります。そのときは Claude が理由を読んで同じ呼び出しをもう一度送れば通りますし、下の設定でこのチェックだけ無効にもできます。Read、Glob、Grep のように読むだけのツールはチェックしません。Write、Edit、Bash のようにコードを扱うツールでは、テキストとして書かれた `\uXXXX` は意図したものとみなしてチェックしません。
+まれな音節のチェックは `똠`、`햏`、`뷁`、`쌰` のような実在する語に、漢字のチェックは JIS X 0208 にない人名用の漢字にも引っかかります。2010 年の常用漢字の追加分 `剝`、`頰`、`塡` と、名前によく使う `髙` はあらかじめ許可しています。そのときは Claude が理由を読んで同じ呼び出しをもう一度送れば通りますし、下の設定でこのチェックだけ無効にもできます。Read、Glob、Grep のように読むだけのツールはチェックしません。Write、Edit、Bash のようにコードを扱うツールでは、テキストとして書かれた `\uXXXX` は意図したものとみなしてチェックしません。
 
 ## 設定と無効化
 
@@ -80,6 +85,7 @@ Claude Code はフックに渡す前に、モデルが書いた JSON をデコ�
 | 設定 | 既定値 | 無効にすると |
 | --- | --- | --- |
 | Notify when fixed upstream（`upstream_check`） | 有効 | GitHub に問い合わせず、修正されたというお知らせも表示しない |
+| Check Japanese kanji（`kanji_check`） | 有効 | 日本語の文章のまれな漢字のチェックだけが外れる |
 | Check Korean syllables（`hangul_check`） | 有効 | まれなハングル音節のチェックだけが外れる。サロゲート、U+FFFD、テキストのエスケープのチェックとセッション開始時の指示はそのまま |
 
 プラグイン全体を無効にするには `claude plugin disable utf8-guard`、削除するには `claude plugin uninstall utf8-guard` を実行します。
@@ -106,9 +112,10 @@ Claude Code はフックに渡す前に、モデルが書いた JSON をデコ�
 | [anthropics/claude-code#79339](https://github.com/anthropics/claude-code/issues/79339) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/79339?label=) | エスケープの途中に `\` と漢字が混ざり、ツール入力全体がパースできなくなる |
 | [anthropics/claude-code#61670](https://github.com/anthropics/claude-code/issues/61670) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/61670?label=) | 片方だけの `\uD83A` と壊れた韓国語が AskUserQuestion に入り、セッションが終わる |
 | [anthropics/claude-code#69522](https://github.com/anthropics/claude-code/issues/69522) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/69522?label=) | エスケープで書いた長いツール引数が JSON のパースに失敗する |
+| [anthropics/claude-code#54051](https://github.com/anthropics/claude-code/issues/54051) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/54051?label=) | Notion MCP ツールで書いた日本語に間違った漢字が混ざる（`揃え` → `諿え`、`側` → `侧`）。一部は簡体字。エスケープが原因というのは推測の段階 |
 | [anthropics/claude-code#56003](https://github.com/anthropics/claude-code/issues/56003) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/56003?label=) | AskUserQuestion に日本語が `\uXXXX` のまま表示される |
 | [anthropics/claude-code#78568](https://github.com/anthropics/claude-code/issues/78568) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/78568?label=) | 繁体字中国語の出力に間違った文字が混ざる |
-| [anthropics/claude-code#59649](https://github.com/anthropics/claude-code/issues/59649) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/59649?label=) | 日本語の出力に、形は似ているが間違った漢字が出る（Opus 4.7） |
+| [anthropics/claude-code#59649](https://github.com/anthropics/claude-code/issues/59649) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/59649?label=) | AskUserQuestion に、形は似ているが間違った漢字が出る（`叩き` → `鯰し`、`再起動` → `在控`）。作成者はエスケープはなかったとしている（Opus 4.7） |
 
 **ツールが作る同じエスケープ**
 
@@ -142,6 +149,7 @@ plugins/utf8-guard/
     pre-tool-use.mjs    チェックに引っかかった呼び出しを一度止める
     check.mjs           チェックの規則（純粋関数）
     hangul.mjs          KS X 1001 のハングル 2,350 字
+    kanji.mjs           JIS X 0208 の漢字 6,355 字
     upstream.mjs        #83033 の状態のキャッシュと GitHub への問い合わせ
     common.mjs          入力の読み込み、設定、データフォルダ
   tests/                node --test 用のテスト
@@ -165,7 +173,7 @@ cd site && npm run dev                        # ローカルプレビュー
 cd site && npm run og                         # 言語別のリンクプレビュー画像を生成（Playwright が必要）
 ```
 
-`hooks/hangul.mjs` は EUC-KR のバイト B0A1〜C8FE をデコードして作った表です。テストが同じ方法で作り直して比べます。
+`hooks/hangul.mjs` は EUC-KR のバイト B0A1〜C8FE を、`hooks/kanji.mjs` は EUC-JP のバイト B0A1〜F4FE をデコードして作った表です。テストが同じ方法で作り直して比べます。
 
 サイトは [Astro](https://astro.build) と共通キット [claude-plugin-site](https://github.com/M1nu0x0/claude-plugin-site) で作っています。文言はすべて `site/src/site.json` に、セクションの順序は `site/src/pages/[...lang].astro` にあります。`npm run build` は言語別のページ（`/`、`/ko/`、`/ja/`）と `sitemap.xml` を作ったあと、クローラーが読むとおりにチェックし（タイトルと説明の長さ、canonical、hreflang、OG、JSON-LD、リンク切れと画像、HTML の検証）、一つでも外れれば失敗します。main にマージされると Pages ワークフローがビルドしてデプロイします。ページの JSON-LD にプラグインのバージョンが入るので、バージョンを上げるとサイトも再デプロイされます。文言を変えたら `site/src/site.json` の `updated` もその日の日付にします。変えないと PR で CI が警告します。`ask`、`answer`、`ogImageLine`、`ogImageText` を変えたら `npm run og` で `site/public/images/og*.png` も作り直してコミットします。
 
@@ -174,7 +182,7 @@ cd site && npm run og                         # 言語別のリンクプレビ�
 ## 制限
 
 - Claude Code 専用です。フックには Node.js 18 以上が必要で、Node がないとフックが失敗して何もチェックしません（呼び出しは止まりません）。
-- セッション開始時の指示に Claude が従わないことがあります。フックは結果だけを見るので、よく使う音節に変わった場合と間違った漢字は検出できません。
+- セッション開始時の指示に Claude が従わないことがあります。フックは結果だけを見るので、よく使う音節やよく使う漢字に変わった場合と、中国語の文章の間違った漢字は検出できません。
 - PreToolUse フックはツール呼び出しのたびに Node のプロセスを 1 つ起動します。
 - 原因の issue の確認は、認証なしで GitHub API を 1 日 1 回呼び出します。失敗したら最後に分かっている状態を保ち、1 日後に再試行します。
 

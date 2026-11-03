@@ -19,10 +19,19 @@ const before = `<span class="p">tool_use</span> TodoWrite {"content": "\\uc810<s
 const after = `<span class="p">tool_use</span> TodoWrite {"content": "점검도 완료된"}
 <span class="p">card</span>  ☐ 점검도 완료된`
 
+// The Japanese page shows a Japanese case: 揃 written as 諿, reported in anthropics/claude-code#54051. Whether an
+// escape caused it is not known, so the first call is shown as the hook receives it, then held back and rewritten.
+const beforeJa = `<span class="p">tool_use</span> AskUserQuestion {"question": "表記を<span class="err">諿</span>えますか？"}
+<span class="p">card</span>  表記を<span class="err">諿</span>えますか？`
+const afterJa = `<span class="p">utf8-guard</span> 諿 (U+8AFF): JIS X 0208 にない漢字
+<span class="p">tool_use</span> AskUserQuestion {"question": "表記を揃えますか？"}
+<span class="p">card</span>  表記を揃えますか？`
+const screens = lang === 'ja' ? [beforeJa, afterJa] : [before, after]
+
 // Related anthropics/claude-code issues, each with a live state badge and a line in strings (i<number>).
 const groups = [
   ['issuesCause', [83033]],
-  ['issuesSame', [80009, 78996, 57981, 53665, 82588, 79339, 61670, 69522, 56003, 78568, 59649]],
+  ['issuesSame', [80009, 78996, 57981, 53665, 82588, 79339, 61670, 69522, 54051, 59649, 56003, 78568]],
   ['issuesTools', [99361, 72957]],
   ['issuesHooks', [93311, 96285]],
 ] as const
@@ -38,11 +47,11 @@ const badge = (n: number) => `https://img.shields.io/github/issues/detail/state/
     <h2 id="screens" set:html={t.screensTitle} />
     <div class="screens even">
       <figure>
-        <pre tabindex="0"><code set:html={before} /></pre>
+        <pre tabindex="0"><code set:html={screens[0]} /></pre>
         <figcaption set:html={t.beforeCap} />
       </figure>
       <figure>
-        <pre tabindex="0"><code set:html={after} /></pre>
+        <pre tabindex="0"><code set:html={screens[1]} /></pre>
         <figcaption set:html={t.afterCap} />
       </figure>
     </div>
@@ -51,7 +60,9 @@ const badge = (n: number) => `https://img.shields.io/github/issues/detail/state/
   <section aria-labelledby="why">
     <h2 id="why" set:html={t.whyTitle} />
     <p set:html={t.why1} />
+    {lang === 'ja' && <p set:html={t.whyJa} />}
     <p set:html={t.why2} />
+    {lang !== 'ja' && <p set:html={t.whyJa} />}
     <p set:html={t.why3} />
   </section>
 
@@ -66,7 +77,9 @@ const badge = (n: number) => `https://img.shields.io/github/issues/detail/state/
     <h2 id="checks" set:html={t.checksTitle} />
     <p set:html={t.checksLead} />
     <dl class="os">
+      {lang === 'ja' && <><dt set:html={t.checkKanjiTerm} /><dd set:html={t.checkKanji} /></>}
       <dt set:html={t.checkHangulTerm} /><dd set:html={t.checkHangul} />
+      {lang !== 'ja' && <><dt set:html={t.checkKanjiTerm} /><dd set:html={t.checkKanji} /></>}
       <dt set:html={t.checkSurrogateTerm} /><dd set:html={t.checkSurrogate} />
       <dt><code>U+FFFD</code></dt><dd set:html={t.checkFffd} />
       <dt><code>\uXXXX</code></dt><dd set:html={t.checkLiteral} />
