@@ -10,6 +10,7 @@ import { test } from 'node:test'
 
 import { findProblems, reason, strings } from '../hooks/check.mjs'
 import { COMMON_HANGUL } from '../hooks/hangul.mjs'
+import { COMMON_KANJI } from '../hooks/kanji.mjs'
 import { isFixed, isStale, readCache, refresh } from '../hooks/upstream.mjs'
 
 // Not import.meta.dirname, which needs Node 20.11: the hooks support Node 18.
@@ -63,6 +64,60 @@ test('the broken syllables reported in #83033 are caught when they fall outside 
   for (const [meant] of REPORTED) assert.deepEqual(findProblems('TodoWrite', { todos: [{ content: meant }] }), [], meant)
 })
 
+// Wrong kanji reported in anthropics/claude-code#54051 (Notion MCP) and #59649 (AskUserQuestion), each beside what
+// was meant, in a sentence with kana so the check knows it is Japanese.
+const REPORTED_JA = [
+  ['表記を揃えますか', '表記を諿えますか'],
+  ['処分しますか', '処勭しますか'],
+  ['側に寄せますか', '侧に寄せますか'],
+  ['1億を超えますか', '1亿を超えますか'],
+  ['嬉しいですか', '嫌しいですか'],
+  ['付いてくる', '跟いてくる'],
+  ['モグラ叩きですか', 'モグラ鯰しですか'],
+  ['再起動しますか', '在控しますか'],
+  ['鳴るノイズですか', '鳥るノイズですか'],
+]
+
+test('the JIS X 0208 table is exactly the 6,355 kanji EUC-JP encodes in levels 1 and 2', () => {
+  const bytes = []
+  for (let lead = 0xb0; lead <= 0xf4; lead++) for (let trail = 0xa1; trail <= 0xfe; trail++) bytes.push(lead, trail)
+  const decoded = Array.from(new TextDecoder('euc-jp').decode(new Uint8Array(bytes))).filter(c => c.codePointAt(0) >= 0x4e00 && c.codePointAt(0) <= 0x9fff)
+  assert.equal(Array.from(COMMON_KANJI).length, 6355)
+  assert.deepEqual(new Set(COMMON_KANJI), new Set(decoded))
+})
+
+test('the wrong kanji reported for Japanese are caught when they fall outside JIS X 0208', () => {
+  const caught = REPORTED_JA.filter(([, broken]) => findProblems('AskUserQuestion', { question: broken }).length)
+  assert.deepEqual(caught.map(([, b]) => b), ['表記を諿えますか', '処勭しますか', '侧に寄せますか', '1亿を超えますか'])
+  // 嫌, 跟, 鯰, 在控 and 鳥 are kanji Japanese uses: a wrong character that is itself common cannot be told apart.
+  for (const [meant] of REPORTED_JA) assert.deepEqual(findProblems('AskUserQuestion', { question: meant }), [], meant)
+  assert.match(findProblems('AskUserQuestion', { question: '表記を諿えますか' })[0].items[0], /^諿 \(U\+8AFF\) in ".*諿.*"$/)
+})
+
+test('kanji are checked only in text with kana, so Chinese is left alone', () => {
+  for (const text of ['这是简体中文，包括侧和亿。', '這是繁體中文。', '侧亿'])
+    assert.deepEqual(findProblems('mcp__notion__update', { content: text }), [], text)
+})
+
+test('kanji Japanese uses that JIS X 0208 lacks pass: 2010 joyo additions and 髙', () => {
+  assert.deepEqual(findProblems('AskUserQuestion', { question: '剝がす、頰、装塡、髙橋さん' }), [])
+})
+
+test('the Japanese check can be turned off; the Korean one does not depend on it', () => {
+  assert.deepEqual(findProblems('AskUserQuestion', { question: '表記を諿えますか' }, { kanji: false }), [])
+  assert.deepEqual(kinds(findProblems('AskUserQuestion', { question: '완릷된' }, { kanji: false })), ['rare-hangul'])
+})
+
+test('the hook sources keep escapes as escapes, not the characters they stand for', () => {
+  // A tool that decodes \uXXXX in file content (anthropics/claude-code#72957) once wrote U+FFFD and Hangul ranges
+  // into check.mjs as raw characters. They worked, but nobody could read them.
+  for (const file of ['check.mjs', 'common.mjs', 'pre-tool-use.mjs', 'session-start.mjs', 'upstream.mjs']) {
+    const code = readFileSync(join(HOOKS, file), 'utf8')
+    assert.doesNotMatch(code, /[\uFFFD\u200B]/, file)
+    assert.doesNotMatch(code, /\/\[[^\]\x00-\x7F]/, `${file}: a regular expression class starts with a raw character`)
+  }
+})
+
 test('the reason names the syllable, its code point and the word around it', () => {
   const problems = findProblems('AskUserQuestion', { questions: [{ question: '점깔도 완릷된 상태인가요?' }] })
   assert.deepEqual(kinds(problems), ['rare-hangul'])
@@ -78,7 +133,7 @@ test('a lone surrogate is caught in every tool that writes, code included', () =
 })
 
 test('U+FFFD is caught', () => {
-  assert.deepEqual(kinds(findProblems('Write', { content: '한�글' })), ['replacement'])
+  assert.deepEqual(kinds(findProblems('Write', { content: '한\uFFFD글' })), ['replacement'])
 })
 
 test('a \\uXXXX written out as text is caught outside code, and only when it stands for CJK', () => {
@@ -96,7 +151,7 @@ test('tools that only read are not checked', () => {
 
 test('the Korean check can be turned off; the others stay on', () => {
   assert.deepEqual(findProblems('TodoWrite', { todos: [{ content: '완릷된' }] }, { hangul: false }), [])
-  assert.deepEqual(kinds(findProblems('TodoWrite', { todos: [{ content: '�' }] }, { hangul: false })), ['replacement'])
+  assert.deepEqual(kinds(findProblems('TodoWrite', { todos: [{ content: '\uFFFD' }] }, { hangul: false })), ['replacement'])
 })
 
 test('strings are collected from nested objects and arrays', () => {

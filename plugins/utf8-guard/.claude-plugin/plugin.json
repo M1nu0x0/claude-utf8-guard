@@ -9,7 +9,7 @@
   "homepage": "https://m1nu0x0.github.io/claude-utf8-guard/",
   "repository": "https://github.com/M1nu0x0/claude-utf8-guard",
   "license": "MIT",
-  "keywords": ["claude-code", "plugin", "hooks", "utf-8", "unicode", "cjk", "korean", "hangul", "japanese", "chinese"],
+  "keywords": ["claude-code", "plugin", "hooks", "utf-8", "unicode", "cjk", "korean", "hangul", "japanese", "kanji", "chinese"],
   "userConfig": {
     "upstream_check": {
       "type": "boolean",
@@ -21,6 +21,12 @@
       "type": "boolean",
       "title": "Check Korean syllables",
       "description": "Hold a tool call back once when it contains Hangul syllables outside the 2,350 of KS X 1001, the usual result of a broken escape",
+      "default": true
+    },
+    "kanji_check": {
+      "type": "boolean",
+      "title": "Check Japanese kanji",
+      "description": "Hold a tool call back once when Japanese text (text with kana) contains kanji outside the 6,355 of JIS X 0208, such as a wrong neighbour or a simplified Chinese form",
       "default": true
     }
   }

@@ -10,7 +10,10 @@ import { dataDir, option, print, readInput } from './common.mjs'
 
 const input = await readInput()
 const tool = input.tool_name ?? ''
-const problems = findProblems(tool, input.tool_input ?? {}, { hangul: option('hangul_check') })
+const problems = findProblems(tool, input.tool_input ?? {}, {
+  hangul: option('hangul_check'),
+  kanji: option('kanji_check'),
+})
 if (problems.length === 0) process.exit(0)
 
 // Calls held back in this session, one hash per line.
