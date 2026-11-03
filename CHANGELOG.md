@@ -9,6 +9,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - The site uses [claude-plugin-site](https://github.com/M1nu0x0/claude-plugin-site) v0.1.1, whose code is now type checked; the pages it builds are the same
 - Dependabot waits 7 days after a release before proposing an update (`cooldown: default-days: 7`), so a malicious release that is pulled within a week never reaches a pull request; security updates skip the wait
 
+### Fixed
+
+- The Japanese page's link-preview description (`og:description`), also the line on the hub page's card, spoke only of Korean; it now says Japanese or Korean, like the rest of the Japanese page
+
 ## [0.1.0] - 2026-11-03
 
 ### Added

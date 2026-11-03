@@ -208,7 +208,7 @@
       "ogImageText": "Claude のツール呼び出しの日本語、韓国語、中国語を UTF-8 のまま書かせます",
       "ogImageLine": "表記を諿える ではなく",
       "ogTitle": "UTF-8 Guard for Claude",
-      "ogDescription": "Claude はツール呼び出しの韓国語を \\uXXXX で書き、16 進数を 1 桁間違えることがあります。このプラグインは UTF-8 のまま書かせます。",
+      "ogDescription": "Claude はツール呼び出しの日本語や韓国語を \\uXXXX エスケープで書いて 16 進数を間違え、別の文字に化けさせることがあります。このプラグインは UTF-8 のまま書かせます。",
       "suggest": {
         "text": "このページは日本語でも読めます。",
         "go": "日本語で読む",
