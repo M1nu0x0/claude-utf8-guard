@@ -6,6 +6,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Changed
 
+- The site uses [claude-plugin-site](https://github.com/M1nu0x0/claude-plugin-site) v0.1.1, whose code is now type checked; the pages it builds are the same
 - Dependabot waits 7 days after a release before proposing an update (`cooldown: default-days: 7`), so a malicious release that is pulled within a week never reaches a pull request; security updates skip the wait
 
 ## [0.1.0] - 2026-11-03
