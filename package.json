@@ -1,0 +1,14 @@
+{
+  "name": "claude-utf8-guard",
+  "private": true,
+  "type": "module",
+  "description": "Tests and their type check for the utf8-guard plugin. The hooks need only Node 18 or later, not this.",
+  "scripts": {
+    "test": "node --test \"plugins/utf8-guard/tests/*.test.mjs\"",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.130",
+    "typescript": "^7.0.2"
+  }
+}

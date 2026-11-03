@@ -1,3 +1,4 @@
+// @ts-check
 import { spawnSync } from 'node:child_process'
 import { createServer } from 'node:http'
 import { existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
@@ -17,7 +18,14 @@ import { isFixed, isStale, readCache, refresh } from '../hooks/upstream.mjs'
 const HOOKS = join(dirname(fileURLToPath(import.meta.url)), '..', 'hooks')
 
 // Runs a hook the way Claude Code does: JSON on stdin, the plugin's data folder and options in the environment.
+/**
+ * @param {string} hook
+ * @param {Record<string, unknown>} input
+ * @param {{ data?: string, env?: NodeJS.ProcessEnv }} [options]
+ * @returns {any} the hook's JSON output, or null when it printed nothing
+ */
 function run(hook, input, { data, env = {} } = {}) {
+  /** @type {NodeJS.ProcessEnv} */
   const e = { ...process.env, CLAUDE_PLUGIN_DATA: data, ...env }
   for (const k of Object.keys(e)) if (e[k] === undefined) delete e[k]
   const r = spawnSync(process.execPath, [join(HOOKS, hook)], { input: JSON.stringify(input), encoding: 'utf8', env: e })
@@ -25,6 +33,7 @@ function run(hook, input, { data, env = {} } = {}) {
   return r.stdout.trim() ? JSON.parse(r.stdout) : null
 }
 
+/** @template T @param {(dir: string) => T} fn @returns {T} */
 function withData(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'utf8-guard-'))
   try {
@@ -34,6 +43,7 @@ function withData(fn) {
   }
 }
 
+/** @param {import('../hooks/check.mjs').Problem[]} problems */
 const kinds = problems => problems.map(p => p.kind)
 
 // The broken words quoted in anthropics/claude-code#83033 and its comments, each beside what was meant.
@@ -81,7 +91,10 @@ const REPORTED_JA = [
 test('the JIS X 0208 table is exactly the 6,355 kanji EUC-JP encodes in levels 1 and 2', () => {
   const bytes = []
   for (let lead = 0xb0; lead <= 0xf4; lead++) for (let trail = 0xa1; trail <= 0xfe; trail++) bytes.push(lead, trail)
-  const decoded = Array.from(new TextDecoder('euc-jp').decode(new Uint8Array(bytes))).filter(c => c.codePointAt(0) >= 0x4e00 && c.codePointAt(0) <= 0x9fff)
+  const decoded = Array.from(new TextDecoder('euc-jp').decode(new Uint8Array(bytes))).filter(c => {
+    const cp = /** @type {number} */ (c.codePointAt(0))
+    return cp >= 0x4e00 && cp <= 0x9fff
+  })
   assert.equal(Array.from(COMMON_KANJI).length, 6355)
   assert.deepEqual(new Set(COMMON_KANJI), new Set(decoded))
 })
@@ -190,6 +203,7 @@ test('PreToolUse reads the Korean option from CLAUDE_PLUGIN_OPTION_HANGUL_CHECK'
 })
 
 // A cache that is fresh, so the hook does not start a refresh during the test.
+/** @param {string} state @param {string | null} stateReason */
 const fresh = (state, stateReason) => ({ issue: 83033, state, stateReason, closedAt: '2026-12-01T00:00:00Z', checkedAt: new Date().toISOString() })
 
 test('SessionStart adds the instruction for the model on every source', () => {
@@ -246,10 +260,12 @@ test('the cache is stale after a day, and only closed as completed counts as fix
 })
 
 // A local stand-in for the GitHub API.
+/** @template T @param {import('node:http').RequestListener} handler @param {() => Promise<T>} fn @returns {Promise<T>} */
 async function withServer(handler, fn) {
   const server = createServer(handler)
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
-  process.env.UTF8_GUARD_ISSUE_API = `http://127.0.0.1:${server.address().port}/issue`
+  await new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve(undefined)))
+  const { port } = /** @type {import('node:net').AddressInfo} */ (server.address())
+  process.env.UTF8_GUARD_ISSUE_API = `http://127.0.0.1:${port}/issue`
   try {
     return await fn()
   } finally {
@@ -268,6 +284,7 @@ test('refresh writes the issue state, and a failed request keeps the last known 
     assert.equal(isFixed(readCache(dir)), true)
     await withServer((req, res) => { res.statusCode = 403; res.end('{}') }, () => refresh(dir))
     const cache = readCache(dir)
+    assert.ok(cache)
     assert.deepEqual([cache.state, cache.stateReason, cache.error], ['closed', 'completed', 'HTTP 403'])
     assert.equal(isStale(cache), false)
     assert.ok(JSON.parse(readFileSync(join(dir, 'upstream.json'), 'utf8')))

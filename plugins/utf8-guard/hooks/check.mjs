@@ -1,3 +1,4 @@
+// @ts-check
 // What the PreToolUse hook looks for in a tool call's input. Pure functions, so the tests call them directly.
 //
 // Claude Code hands the hook the input after it has decoded the model's JSON, so a \uXXXX escape the model wrote
@@ -29,14 +30,17 @@ const KANJI = /[\u4E00-\u9FFF]/g
 const KANA = /[\u3041-\u3096\u30A1-\u30FA]/
 
 // Hangul, CJK ideographs, kana and CJK punctuation: what a literal \uXXXX should never stand for in plain text.
+/** @param {number} cp */
 const isCjk = cp =>
   (cp >= 0xac00 && cp <= 0xd7a3) || (cp >= 0x1100 && cp <= 0x11ff) || (cp >= 0x3000 && cp <= 0x30ff) ||
   (cp >= 0x3130 && cp <= 0x318f) || (cp >= 0x3400 && cp <= 0x4dbf) || (cp >= 0x4e00 && cp <= 0x9fff) ||
   (cp >= 0xf900 && cp <= 0xfaff) || (cp >= 0xff00 && cp <= 0xffef)
 
-const hex = c => 'U+' + c.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')
+/** @param {string} c */
+const hex = c => 'U+' + /** @type {number} */ (c.codePointAt(0)).toString(16).toUpperCase().padStart(4, '0')
 
 // Every string value in the input, however deeply nested (AskUserQuestion and MCP tools nest them).
+/** @param {unknown} value @param {string[]} [out] @returns {string[]} */
 export function strings(value, out = []) {
   if (typeof value === 'string') out.push(value)
   else if (Array.isArray(value)) for (const v of value) strings(v, out)
@@ -45,15 +49,28 @@ export function strings(value, out = []) {
 }
 
 // A few characters either side of a match, so the model can find the word it broke.
+/** @param {string} text @param {number} index @param {number} length */
 function around(text, index, length) {
   const chars = Array.from(text.slice(Math.max(0, index - 6), index + length + 6))
   return chars.join('').replace(/\s+/g, ' ').trim()
 }
 
+/**
+ * @typedef {'lone-surrogate' | 'replacement' | 'literal-escape' | 'rare-hangul' | 'rare-kanji'} Kind
+ * @typedef {{ kind: Kind, items: string[] }} Problem
+ */
+
 // Returns a list of { kind, items } for the problems in one tool call's input; an empty list means let it through.
+/**
+ * @param {string} toolName
+ * @param {unknown} input
+ * @param {{ hangul?: boolean, kanji?: boolean }} [options]
+ * @returns {Problem[]}
+ */
 export function findProblems(toolName, input, { hangul = true, kanji = true } = {}) {
   if (READ_TOOLS.has(toolName)) return []
   const texts = strings(input)
+  /** @type {Problem[]} */
   const problems = []
 
   const lone = new Map()
@@ -93,6 +110,7 @@ export function findProblems(toolName, input, { hangul = true, kanji = true } = 
   return problems
 }
 
+/** @type {Record<Kind, string>} */
 const HEADINGS = {
   'lone-surrogate': 'Half of a UTF-16 surrogate pair, which the API rejects and which can stop the session',
   replacement: 'The replacement character U+FFFD, left where a character failed to decode',
@@ -102,6 +120,7 @@ const HEADINGS = {
 }
 
 // The reason the model reads when the call is held back.
+/** @param {string} toolName @param {Problem[]} problems @returns {string} */
 export function reason(toolName, problems) {
   const lines = [`utf8-guard held this ${toolName} call back once. Its input may contain broken characters, often from a \\uXXXX escape with a wrong hex digit (anthropics/claude-code#83033):`]
   for (const p of problems) lines.push(`- ${HEADINGS[p.kind]}: ${p.items.slice(0, 8).join(', ')}${p.items.length > 8 ? ', ...' : ''}`)
@@ -113,6 +132,7 @@ export function reason(toolName, problems) {
 }
 
 // One line for the person, so a held-back call is not a surprise.
+/** @param {string} toolName @param {Problem[]} problems @returns {string} */
 export function notice(toolName, problems) {
   const first = problems.map(p => p.items[0].split(' ')[0]).slice(0, 3).join(', ')
   return `utf8-guard held back one ${toolName} call for suspicious characters (${first}); Claude will check and resend it.`

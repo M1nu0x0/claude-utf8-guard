@@ -1,3 +1,4 @@
+// @ts-check
 // The 2,350 Hangul syllables of KS X 1001, the Korean set EUC-KR encodes, in code point order. Korean text
 // is written almost entirely with these; a hand-written \uXXXX escape with one wrong hex digit lands outside them
 // about 70% of the time. Generated: decode EUC-KR bytes B0A1-C8FE (tests/utf8-guard.test.mjs checks it again).
