@@ -1,16 +1,22 @@
 version: 2
+# Every update waits 7 days after a release before Dependabot proposes it, so a malicious release that is
+# caught and pulled within a week never reaches a pull request. Security updates skip the wait.
 updates:
   # The actions the workflows use.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
 
   # The type check: TypeScript and the Node types.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     groups:
       dev:
         patterns: ["*"]
@@ -20,6 +26,8 @@ updates:
     directory: /site
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     groups:
       site:
         patterns: ["*"]
