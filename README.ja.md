@@ -107,14 +107,19 @@ Claude Code はフックに渡す前に、モデルが書いた JSON をデコ�
 | [anthropics/claude-code#80009](https://github.com/anthropics/claude-code/issues/80009) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/80009?label=) | AskUserQuestion の入力の韓国語の音節が壊れる。セッションログで確認済み。#83033 が同じ原因として挙げている |
 | [anthropics/claude-code#78996](https://github.com/anthropics/claude-code/issues/78996) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/78996?label=) | 長い韓国語のセッションでハングルが崩れる。#83033 が同じ原因として挙げている |
 | [anthropics/claude-code#57981](https://github.com/anthropics/claude-code/issues/57981) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/57981?label=) | AskUserQuestion で、間違っているが実在する音節がときどき出る |
+| [anthropics/claude-code#88132](https://github.com/anthropics/claude-code/issues/88132) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/88132?label=) | VS Code の AskUserQuestion で、韓国語がそれらしいが間違った音節に変わる |
+| [anthropics/claude-code#89117](https://github.com/anthropics/claude-code/issues/89117) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/89117?label=) | VS Code の AskUserQuestion で、韓国語が別の音節に変わる（`브랜치를` → `버리 묵을`、`앱` → `압`） |
+| [anthropics/claude-code#80415](https://github.com/anthropics/claude-code/issues/80415) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/80415?label=) | VS Code の AskUserQuestion と TodoWrite のカードで、韓国語が間違った音節になる |
 | [anthropics/claude-code#53665](https://github.com/anthropics/claude-code/issues/53665) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/53665?label=) | Opus 4.7 で tool_use の JSON パラメータの韓国語が壊れる |
 | [anthropics/claude-code#82588](https://github.com/anthropics/claude-code/issues/82588) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/82588?label=) | Opus 5 が間違ったハングルの音節を書く |
 | [anthropics/claude-code#79339](https://github.com/anthropics/claude-code/issues/79339) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/79339?label=) | エスケープの途中に `\` と漢字が混ざり、ツール入力全体がパースできなくなる |
 | [anthropics/claude-code#61670](https://github.com/anthropics/claude-code/issues/61670) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/61670?label=) | 片方だけの `\uD83A` と壊れた韓国語が AskUserQuestion に入り、セッションが終わる |
+| [anthropics/claude-code#68325](https://github.com/anthropics/claude-code/issues/68325) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/68325?label=) | AskUserQuestion の韓国語に片方だけの `\ud99c` が入り（`현재` → `현\ud99c`）、セッションが二度と使えなくなる |
 | [anthropics/claude-code#69522](https://github.com/anthropics/claude-code/issues/69522) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/69522?label=) | エスケープで書いた長いツール引数が JSON のパースに失敗する |
 | [anthropics/claude-code#54051](https://github.com/anthropics/claude-code/issues/54051) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/54051?label=) | Notion MCP ツールで書いた日本語に間違った漢字が混ざる（`揃え` → `諿え`、`側` → `侧`）。一部は簡体字。エスケープが原因というのは推測の段階 |
 | [anthropics/claude-code#56003](https://github.com/anthropics/claude-code/issues/56003) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/56003?label=) | AskUserQuestion に日本語が `\uXXXX` のまま表示される |
 | [anthropics/claude-code#78568](https://github.com/anthropics/claude-code/issues/78568) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/78568?label=) | 繁体字中国語の出力に間違った文字が混ざる |
+| [anthropics/claude-code#92588](https://github.com/anthropics/claude-code/issues/92588) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/92588?label=) | AskUserQuestion の繁体字中国語が壊れる（`敷衍點` → `敷且點`）。通常の応答は問題ない |
 | [anthropics/claude-code#59649](https://github.com/anthropics/claude-code/issues/59649) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/59649?label=) | AskUserQuestion に、形は似ているが間違った漢字が出る（`叩き` → `鯰し`、`再起動` → `在控`）。作成者はエスケープはなかったとしている（Opus 4.7） |
 
 **ツールが作る同じエスケープ**
@@ -123,8 +128,11 @@ Claude Code はフックに渡す前に、モデルが書いた JSON をデコ�
 
 | Issue | 状態 | 内容 |
 | --- | --- | --- |
+| [anthropics/claude-code#64479](https://github.com/anthropics/claude-code/issues/64479) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/64479?label=) | リテラルと `\uXXXX` が混ざった複数行の old_string を Edit が見つけられない。#99361 もこの issue で最初に報告された |
 | [anthropics/claude-code#99361](https://github.com/anthropics/claude-code/issues/99361) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/99361?label=) | old_string がエスケープの形でしか一致しないと、Edit が `new_string` の非 ASCII 文字をすべて `\uXXXX` で書く |
 | [anthropics/claude-code#72957](https://github.com/anthropics/claude-code/issues/72957) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/72957?label=) | Write と Edit がファイル内容の `\uXXXX` をデコードしてしまう |
+| [anthropics/claude-code#108385](https://github.com/anthropics/claude-code/issues/108385) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/108385?label=) | Linux で Bash がコマンド引数の `\uXXXX` をデコードしてしまう |
+| [anthropics/claude-code#109775](https://github.com/anthropics/claude-code/issues/109775) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/109775?label=) | ツール呼び出しの配列引数に入った非 ASCII 文字列が会話履歴に `\uXXXX` で保存され、モデルが以前の呼び出しをエスケープの形で見る |
 
 **フックから見えないもの**
 

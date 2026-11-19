@@ -6,6 +6,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Changed
 
+- The related-issues lists in the READMEs and on the site track 8 more anthropics/claude-code issues: wrong syllables or characters in AskUserQuestion and TodoWrite (#88132, #89117, #80415, #92588), a lone surrogate that bricks a session (#68325), and tool-side escape bugs (#64479, #108385, #109775)
 - The site uses [claude-plugin-site](https://github.com/M1nu0x0/claude-plugin-site) v0.1.1, whose code is now type checked; the pages it builds are the same
 - Dependabot waits 7 days after a release before proposing an update (`cooldown: default-days: 7`), so a malicious release that is pulled within a week never reaches a pull request; security updates skip the wait
 

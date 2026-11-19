@@ -105,14 +105,19 @@ Claude Code는 훅에 넘기기 전에 모델이 쓴 JSON을 먼저 풉니다. �
 | [anthropics/claude-code#80009](https://github.com/anthropics/claude-code/issues/80009) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/80009?label=) | AskUserQuestion 입력의 한글 음절이 깨짐. 세션 로그에서 확인됨. #83033이 같은 원인으로 지목 |
 | [anthropics/claude-code#78996](https://github.com/anthropics/claude-code/issues/78996) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/78996?label=) | 긴 한국어 세션에서 한글이 잘못된 형태로 무너짐. #83033이 같은 원인으로 지목 |
 | [anthropics/claude-code#57981](https://github.com/anthropics/claude-code/issues/57981) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/57981?label=) | AskUserQuestion에서 틀렸지만 실제로 있는 음절이 가끔 나옴 |
+| [anthropics/claude-code#88132](https://github.com/anthropics/claude-code/issues/88132) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/88132?label=) | VS Code의 AskUserQuestion에서 한글이 그럴듯하지만 틀린 음절로 바뀜 |
+| [anthropics/claude-code#89117](https://github.com/anthropics/claude-code/issues/89117) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/89117?label=) | VS Code의 AskUserQuestion에서 한글이 다른 음절로 바뀜(`브랜치를` → `버리 묵을`, `앱` → `압`) |
+| [anthropics/claude-code#80415](https://github.com/anthropics/claude-code/issues/80415) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/80415?label=) | VS Code의 AskUserQuestion과 TodoWrite 카드에서 한글이 틀린 음절로 바뀜 |
 | [anthropics/claude-code#53665](https://github.com/anthropics/claude-code/issues/53665) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/53665?label=) | Opus 4.7에서 tool_use JSON 파라미터의 한글이 깨짐 |
 | [anthropics/claude-code#82588](https://github.com/anthropics/claude-code/issues/82588) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/82588?label=) | Opus 5가 틀린 한글 음절을 씀 |
 | [anthropics/claude-code#79339](https://github.com/anthropics/claude-code/issues/79339) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/79339?label=) | 이스케이프 중간에 `\`와 한자를 섞어 써서 도구 입력 전체를 파싱할 수 없음 |
 | [anthropics/claude-code#61670](https://github.com/anthropics/claude-code/issues/61670) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/61670?label=) | 짝 없는 `\uD83A`와 깨진 한글이 AskUserQuestion에 들어가 세션이 끝남 |
+| [anthropics/claude-code#68325](https://github.com/anthropics/claude-code/issues/68325) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/68325?label=) | AskUserQuestion의 한글에 짝 없는 `\ud99c`가 들어가(`현재` → `현\ud99c`) 세션이 영구히 막힘 |
 | [anthropics/claude-code#69522](https://github.com/anthropics/claude-code/issues/69522) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/69522?label=) | 이스케이프로 쓴 긴 도구 인자가 JSON 파싱에 실패함 |
 | [anthropics/claude-code#54051](https://github.com/anthropics/claude-code/issues/54051) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/54051?label=) | Notion MCP 도구로 쓴 일본어에 틀린 한자가 섞임(`揃え` → `諿え`, `側` → `侧`). 이스케이프가 원인인지는 추정 단계 |
 | [anthropics/claude-code#56003](https://github.com/anthropics/claude-code/issues/56003) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/56003?label=) | AskUserQuestion에 일본어가 `\uXXXX` 그대로 보임 |
 | [anthropics/claude-code#78568](https://github.com/anthropics/claude-code/issues/78568) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/78568?label=) | 번체 중국어 출력에 틀린 글자가 섞임 |
+| [anthropics/claude-code#92588](https://github.com/anthropics/claude-code/issues/92588) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/92588?label=) | AskUserQuestion의 번체 중국어가 깨짐(`敷衍點` → `敷且點`). 일반 응답은 멀쩡함 |
 | [anthropics/claude-code#59649](https://github.com/anthropics/claude-code/issues/59649) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/59649?label=) | AskUserQuestion에 비슷하게 생긴 틀린 한자가 나옴(`叩き` → `鯰し`, `再起動` → `在控`). 작성자는 이스케이프가 없었다고 함(Opus 4.7) |
 
 **도구가 만드는 같은 이스케이프**
@@ -121,8 +126,11 @@ Claude Code는 훅에 넘기기 전에 모델이 쓴 JSON을 먼저 풉니다. �
 
 | 이슈 | 상태 | 내용 |
 | --- | --- | --- |
+| [anthropics/claude-code#64479](https://github.com/anthropics/claude-code/issues/64479) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/64479?label=) | 리터럴과 `\uXXXX`가 섞인 여러 줄 old_string을 Edit이 찾지 못함. #99361도 이 이슈에서 처음 보고됨 |
 | [anthropics/claude-code#99361](https://github.com/anthropics/claude-code/issues/99361) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/99361?label=) | old_string이 이스케이프 형태로 일치하면 Edit이 `new_string`의 비ASCII 문자를 모두 `\uXXXX`로 씀 |
 | [anthropics/claude-code#72957](https://github.com/anthropics/claude-code/issues/72957) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/72957?label=) | Write와 Edit이 파일 내용의 `\uXXXX`를 풀어 버림 |
+| [anthropics/claude-code#108385](https://github.com/anthropics/claude-code/issues/108385) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/108385?label=) | Linux에서 Bash가 명령 인자의 `\uXXXX`를 풀어 버림 |
+| [anthropics/claude-code#109775](https://github.com/anthropics/claude-code/issues/109775) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/109775?label=) | 도구 호출의 배열 인자에 든 비ASCII 문자열이 대화 기록에 `\uXXXX`로 저장되어, 모델이 이전 호출을 이스케이프 형태로 다시 봄 |
 
 **훅이 볼 수 없는 것**
 

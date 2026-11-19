@@ -105,14 +105,19 @@ Badges show each issue's current state (open/closed).
 | [anthropics/claude-code#80009](https://github.com/anthropics/claude-code/issues/80009) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/80009?label=) | Corrupted Korean syllables in AskUserQuestion input, confirmed in the session log. #83033 names the same cause |
 | [anthropics/claude-code#78996](https://github.com/anthropics/claude-code/issues/78996) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/78996?label=) | Long Korean sessions degrade into ill-formed Hangul. #83033 names the same cause |
 | [anthropics/claude-code#57981](https://github.com/anthropics/claude-code/issues/57981) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/57981?label=) | Wrong but valid Korean syllables in AskUserQuestion, now and then |
+| [anthropics/claude-code#88132](https://github.com/anthropics/claude-code/issues/88132) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/88132?label=) | Korean in VS Code's AskUserQuestion turns into valid-looking but wrong syllables |
+| [anthropics/claude-code#89117](https://github.com/anthropics/claude-code/issues/89117) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/89117?label=) | Korean in VS Code's AskUserQuestion turns into other syllables (`브랜치를` → `버리 묵을`, `앱` → `압`) |
+| [anthropics/claude-code#80415](https://github.com/anthropics/claude-code/issues/80415) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/80415?label=) | Wrong Korean syllables in VS Code's AskUserQuestion and TodoWrite cards |
 | [anthropics/claude-code#53665](https://github.com/anthropics/claude-code/issues/53665) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/53665?label=) | Korean garbled in tool_use JSON parameters on Opus 4.7 |
 | [anthropics/claude-code#82588](https://github.com/anthropics/claude-code/issues/82588) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/82588?label=) | Opus 5 writes wrong Hangul syllables |
 | [anthropics/claude-code#79339](https://github.com/anthropics/claude-code/issues/79339) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/79339?label=) | A `\` and a raw CJK character in the middle of an escape make the whole tool input unparsable |
 | [anthropics/claude-code#61670](https://github.com/anthropics/claude-code/issues/61670) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/61670?label=) | A lone `\uD83A` and garbled Korean in AskUserQuestion end the session |
+| [anthropics/claude-code#68325](https://github.com/anthropics/claude-code/issues/68325) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/68325?label=) | A lone `\ud99c` in Korean AskUserQuestion text (`현재` → `현\ud99c`) bricks the session for good |
 | [anthropics/claude-code#69522](https://github.com/anthropics/claude-code/issues/69522) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/69522?label=) | Long escaped tool arguments fail to parse as JSON |
 | [anthropics/claude-code#54051](https://github.com/anthropics/claude-code/issues/54051) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/54051?label=) | Wrong kanji, some simplified Chinese, in Japanese written through Notion MCP tools (`揃え` → `諿え`, `側` → `侧`). Escapes are only a guess at the cause |
 | [anthropics/claude-code#56003](https://github.com/anthropics/claude-code/issues/56003) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/56003?label=) | Japanese shown as raw `\uXXXX` in AskUserQuestion |
 | [anthropics/claude-code#78568](https://github.com/anthropics/claude-code/issues/78568) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/78568?label=) | Wrong characters in Traditional Chinese output |
+| [anthropics/claude-code#92588](https://github.com/anthropics/claude-code/issues/92588) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/92588?label=) | Traditional Chinese garbled in AskUserQuestion (`敷衍點` → `敷且點`) while normal replies are fine |
 | [anthropics/claude-code#59649](https://github.com/anthropics/claude-code/issues/59649) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/59649?label=) | Similar-looking but wrong kanji in AskUserQuestion (`叩き` → `鯰し`, `再起動` → `在控`); the reporter saw no escapes (Opus 4.7) |
 
 **The same escapes, from a tool**
@@ -121,8 +126,11 @@ These are bugs in Claude Code's tools, not the model. This plugin cannot fix the
 
 | Issue | State | What |
 | --- | --- | --- |
+| [anthropics/claude-code#64479](https://github.com/anthropics/claude-code/issues/64479) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/64479?label=) | Edit cannot find a multi-line old_string that mixes literal characters and `\uXXXX`. #99361 was first reported here |
 | [anthropics/claude-code#99361](https://github.com/anthropics/claude-code/issues/99361) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/99361?label=) | When old_string matches only in its escaped form, Edit writes every non-ASCII character in `new_string` as `\uXXXX` |
 | [anthropics/claude-code#72957](https://github.com/anthropics/claude-code/issues/72957) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/72957?label=) | Write and Edit decode `\uXXXX` in file content |
+| [anthropics/claude-code#108385](https://github.com/anthropics/claude-code/issues/108385) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/108385?label=) | On Linux, Bash decodes `\uXXXX` in command arguments |
+| [anthropics/claude-code#109775](https://github.com/anthropics/claude-code/issues/109775) | ![](https://img.shields.io/github/issues/detail/state/anthropics/claude-code/109775?label=) | Non-ASCII strings in array arguments of tool calls are stored as `\uXXXX` in the conversation history, so the model sees its earlier calls as escapes |
 
 **What a hook cannot see**
 
