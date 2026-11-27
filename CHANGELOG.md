@@ -6,7 +6,8 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Removed
 
-- The Hangul check, which held back a tool call with a syllable outside the 2,350 of KS X 1001, and its "Check Korean syllables" option (`hangul_check`) and `hooks/hangul.mjs`. Every Hangul syllable is valid UTF-8, and real Korean uses syllables outside that table (똠방각하, 샾, 쏼라쏼라, 햏자, names such as 이믜), so the check held back correct text in every tool, Write and Edit included. Wrong syllables are left to the session-start instruction to prevent, and a test now checks that all 11,172 syllables pass. The Japanese kanji check is unchanged
+- The Hangul check, which held back a tool call with a syllable outside the 2,350 of KS X 1001, and its "Check Korean syllables" option (`hangul_check`) and `hooks/hangul.mjs`. Every Hangul syllable is valid UTF-8, and real Korean uses syllables outside that table (똠방각하, 샾, 쏼라쏼라, 햏자, names such as 이믜), so the check held back correct text in every tool, Write and Edit included. Wrong syllables are left to the session-start instruction to prevent, and a test now checks that all 11,172 syllables pass
+- The kanji check, which held back a tool call when text with kana had a kanji outside the 6,355 of JIS X 0208, and its "Check Japanese kanji" option (`kanji_check`) and `hooks/kanji.mjs`, for the same reason: Japanese uses kanji outside that table (森鷗外, 噓, 俱楽部, 繫がり, 任俠, names such as 濵田 and 德川). Wrong kanji are left to the session-start instruction to prevent, and a test now checks that every kanji U+4E00-U+9FFF passes in text with kana. The hook now holds back only broken text: half a surrogate pair, U+FFFD, and a `\uXXXX` written out as text outside code
 
 ### Changed
 
