@@ -3,13 +3,15 @@
 //
 // Claude Code hands the hook the input after it has decoded the model's JSON, so a \uXXXX escape the model wrote
 // has already become a character here. The hook cannot see the escape, only what it turned into: a lone surrogate,
-// U+FFFD, a Hangul syllable Korean text almost never uses, a kanji Japanese text almost never uses, or, when the
-// model escaped the backslash too, the escape itself as text. The two character checks look at the result, so they
-// also catch a wrong character the model wrote without any escape.
-import { COMMON_HANGUL } from './hangul.mjs'
+// U+FFFD, a kanji Japanese text almost never uses, or, when the model escaped the backslash too, the escape itself
+// as text.
+//
+// Hangul is not checked by table. Every one of the 11,172 syllables U+AC00-U+D7A3 is valid UTF-8, and real Korean
+// uses syllables outside any table (똠방각하, 샾, 쏼라쏼라, 햏자), so a wrong syllable from a wrong hex digit cannot be
+// told from a meant one without holding back correct text. The session-start instruction prevents those instead:
+// in anthropics/claude-code#83033 runs told to write UTF-8 broke their Hangul in 1 of 30 and 0 of 30, against 45 of
+// 45 that wrote escapes.
 import { COMMON_KANJI } from './kanji.mjs'
-
-const COMMON = new Set(COMMON_HANGUL)
 
 // JIS X 0208 plus the kanji Japanese text uses that it lacks: three of the 2010 joyo additions (剝 頰 塡; the fourth,
 // 𠮟, is outside the BMP and never checked) and 髙, common in names.
@@ -22,7 +24,6 @@ const CODE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit', 'Bash'
 const READ_TOOLS = new Set(['Read', 'Glob', 'Grep', 'LS', 'NotebookRead', 'WebSearch', 'ToolSearch'])
 
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g
-const HANGUL_SYLLABLE = /[\uAC00-\uD7A3]/g
 const LITERAL_ESCAPE = /\\u([0-9a-fA-F]{4})/g
 const KANJI = /[\u4E00-\u9FFF]/g
 // Hiragana or katakana: the string is Japanese, so its kanji can be checked against JIS X 0208. A string of hanzi
@@ -56,7 +57,7 @@ function around(text, index, length) {
 }
 
 /**
- * @typedef {'lone-surrogate' | 'replacement' | 'literal-escape' | 'rare-hangul' | 'rare-kanji'} Kind
+ * @typedef {'lone-surrogate' | 'replacement' | 'literal-escape' | 'rare-kanji'} Kind
  * @typedef {{ kind: Kind, items: string[] }} Problem
  */
 
@@ -64,10 +65,10 @@ function around(text, index, length) {
 /**
  * @param {string} toolName
  * @param {unknown} input
- * @param {{ hangul?: boolean, kanji?: boolean }} [options]
+ * @param {{ kanji?: boolean }} [options]
  * @returns {Problem[]}
  */
-export function findProblems(toolName, input, { hangul = true, kanji = true } = {}) {
+export function findProblems(toolName, input, { kanji = true } = {}) {
   if (READ_TOOLS.has(toolName)) return []
   const texts = strings(input)
   /** @type {Problem[]} */
@@ -91,13 +92,6 @@ export function findProblems(toolName, input, { hangul = true, kanji = true } = 
     if (literal.size) problems.push({ kind: 'literal-escape', items: [...literal].map(([e, c]) => `${e} (${c})`) })
   }
 
-  if (hangul) {
-    const rare = new Map()
-    for (const t of texts)
-      for (const m of t.matchAll(HANGUL_SYLLABLE)) if (!COMMON.has(m[0])) rare.set(m[0], around(t, m.index, 1))
-    if (rare.size) problems.push({ kind: 'rare-hangul', items: [...rare].map(([c, at]) => `${c} (${hex(c)}) in "${at}"`) })
-  }
-
   if (kanji) {
     const rare = new Map()
     for (const t of texts) {
@@ -115,7 +109,6 @@ const HEADINGS = {
   'lone-surrogate': 'Half of a UTF-16 surrogate pair, which the API rejects and which can stop the session',
   replacement: 'The replacement character U+FFFD, left where a character failed to decode',
   'literal-escape': 'A \\uXXXX escape written out as text instead of the character it stands for',
-  'rare-hangul': 'Hangul syllables Korean text almost never uses, the usual result of a \\uXXXX escape with a wrong hex digit',
   'rare-kanji': 'Kanji in Japanese text that are outside JIS X 0208, such as a simplified Chinese form or a rare neighbour of the intended character',
 }
 

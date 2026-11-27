@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Removed
+
+- The Hangul check, which held back a tool call with a syllable outside the 2,350 of KS X 1001, and its "Check Korean syllables" option (`hangul_check`) and `hooks/hangul.mjs`. Every Hangul syllable is valid UTF-8, and real Korean uses syllables outside that table (똠방각하, 샾, 쏼라쏼라, 햏자, names such as 이믜), so the check held back correct text in every tool, Write and Edit included. Wrong syllables are left to the session-start instruction to prevent, and a test now checks that all 11,172 syllables pass. The Japanese kanji check is unchanged
+
 ### Changed
 
 - The related-issues lists in the READMEs and on the site track 8 more anthropics/claude-code issues: wrong syllables or characters in AskUserQuestion and TodoWrite (#88132, #89117, #80415, #92588), a lone surrogate that bricks a session (#68325), and tool-side escape bugs (#64479, #108385, #109775)
