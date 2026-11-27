@@ -10,7 +10,6 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import { findProblems, reason, strings } from '../hooks/check.mjs'
-import { COMMON_KANJI } from '../hooks/kanji.mjs'
 import { isFixed, isStale, readCache, refresh } from '../hooks/upstream.mjs'
 
 // Not import.meta.dirname, which needs Node 20.11: the hooks support Node 18.
@@ -72,51 +71,28 @@ test('every Hangul syllable passes in every tool: valid UTF-8 is never held back
   assert.deepEqual(findProblems('TodoWrite', { todos: [{ content: '점깔도 완릷된' }] }), [])
 })
 
-// Wrong kanji reported in anthropics/claude-code#54051 (Notion MCP) and #59649 (AskUserQuestion), each beside what
-// was meant, in a sentence with kana so the check knows it is Japanese.
-const REPORTED_JA = [
-  ['表記を揃えますか', '表記を諿えますか'],
-  ['処分しますか', '処勭しますか'],
-  ['側に寄せますか', '侧に寄せますか'],
-  ['1億を超えますか', '1亿を超えますか'],
-  ['嬉しいですか', '嫌しいですか'],
-  ['付いてくる', '跟いてくる'],
-  ['モグラ叩きですか', 'モグラ鯰しですか'],
-  ['再起動しますか', '在控しますか'],
-  ['鳴るノイズですか', '鳥るノイズですか'],
+// Japanese that a table such as the 6,355 kanji of JIS X 0208 would hold back: names, the 表外漢字 forms that
+// Japanese text uses, and the 2010 joyo additions.
+const JAPANESE_OUTSIDE_JIS_X_0208 = [
+  '森鷗外を読みます',
+  'それは噓です',
+  '俱楽部に入る',
+  '繫がりがある',
+  '頭を搔く、腕を摑む',
+  '任俠映画です',
+  '濵田さんと德川さんへ',
+  '剝がす、頰、装塡、髙橋さん',
 ]
 
-test('the JIS X 0208 table is exactly the 6,355 kanji EUC-JP encodes in levels 1 and 2', () => {
-  const bytes = []
-  for (let lead = 0xb0; lead <= 0xf4; lead++) for (let trail = 0xa1; trail <= 0xfe; trail++) bytes.push(lead, trail)
-  const decoded = Array.from(new TextDecoder('euc-jp').decode(new Uint8Array(bytes))).filter(c => {
-    const cp = /** @type {number} */ (c.codePointAt(0))
-    return cp >= 0x4e00 && cp <= 0x9fff
-  })
-  assert.equal(Array.from(COMMON_KANJI).length, 6355)
-  assert.deepEqual(new Set(COMMON_KANJI), new Set(decoded))
-})
-
-test('the wrong kanji reported for Japanese are caught when they fall outside JIS X 0208', () => {
-  const caught = REPORTED_JA.filter(([, broken]) => findProblems('AskUserQuestion', { question: broken }).length)
-  assert.deepEqual(caught.map(([, b]) => b), ['表記を諿えますか', '処勭しますか', '侧に寄せますか', '1亿を超えますか'])
-  // 嫌, 跟, 鯰, 在控 and 鳥 are kanji Japanese uses: a wrong character that is itself common cannot be told apart.
-  for (const [meant] of REPORTED_JA) assert.deepEqual(findProblems('AskUserQuestion', { question: meant }), [], meant)
-  assert.match(findProblems('AskUserQuestion', { question: '表記を諿えますか' })[0].items[0], /^諿 \(U\+8AFF\) in ".*諿.*"$/)
-})
-
-test('kanji are checked only in text with kana, so Chinese is left alone', () => {
-  for (const text of ['这是简体中文，包括侧和亿。', '這是繁體中文。', '侧亿'])
-    assert.deepEqual(findProblems('mcp__notion__update', { content: text }), [], text)
-})
-
-test('kanji Japanese uses that JIS X 0208 lacks pass: 2010 joyo additions and 髙', () => {
-  assert.deepEqual(findProblems('AskUserQuestion', { question: '剝がす、頰、装塡、髙橋さん' }), [])
-})
-
-test('the Japanese check can be turned off; the other checks do not depend on it', () => {
-  assert.deepEqual(findProblems('AskUserQuestion', { question: '表記を諿えますか' }, { kanji: false }), [])
-  assert.deepEqual(kinds(findProblems('AskUserQuestion', { question: '완\uFFFD된' }, { kanji: false })), ['replacement'])
+test('every kanji passes in every tool, with or without kana: valid UTF-8 is never held back as Japanese', () => {
+  for (const text of JAPANESE_OUTSIDE_JIS_X_0208)
+    for (const tool of ['AskUserQuestion', 'TodoWrite', 'Write', 'Edit', 'Bash', 'mcp__notion__update'])
+      assert.deepEqual(findProblems(tool, { content: text }), [], `${tool}: ${text}`)
+  let all = 'ひらがなとカタカナ'
+  for (let cp = 0x4e00; cp <= 0x9fff; cp++) all += String.fromCodePoint(cp)
+  assert.deepEqual(findProblems('AskUserQuestion', { question: all }), [])
+  // The kanji #54051 quotes are valid UTF-8 too; the session-start instruction prevents them instead.
+  assert.deepEqual(findProblems('mcp__notion__update', { content: '表記を諿えますか、侧に寄せますか' }), [])
 })
 
 test('the hook sources keep escapes as escapes, not the characters they stand for', () => {
@@ -130,9 +106,9 @@ test('the hook sources keep escapes as escapes, not the characters they stand fo
 })
 
 test('the reason names the character, its code point and the word around it', () => {
-  const problems = findProblems('AskUserQuestion', { questions: [{ question: '点検は完了した、侧に寄せますか？' }] })
-  assert.deepEqual(kinds(problems), ['rare-kanji'])
-  assert.match(problems[0].items[0], /^侧 \(U\+4FA7\) in ".*侧に寄せ.*"$/)
+  const problems = findProblems('AskUserQuestion', { questions: [{ question: '点検は完了した、a\uD83Ab に寄せますか？' }] })
+  assert.deepEqual(kinds(problems), ['lone-surrogate'])
+  assert.match(problems[0].items[0], /^U\+D83A near ".*a\uD83Ab に寄せ.*"$/)
   assert.match(reason('AskUserQuestion', problems), /#83033[\s\S]*send the same call again unchanged/)
 })
 
@@ -187,13 +163,6 @@ test('PreToolUse prints nothing for a clean call', () => {
   })
 })
 
-test('PreToolUse reads the Japanese option from CLAUDE_PLUGIN_OPTION_KANJI_CHECK', () => {
-  withData(data => {
-    const input = { session_id: 's', tool_name: 'TodoWrite', tool_input: { todos: [{ content: '侧に寄せますか' }] } }
-    assert.equal(run('pre-tool-use.mjs', input, { data, env: { CLAUDE_PLUGIN_OPTION_KANJI_CHECK: 'false' } }), null)
-    assert.notEqual(run('pre-tool-use.mjs', input, { data, env: { CLAUDE_PLUGIN_OPTION_KANJI_CHECK: 'true' } }), null)
-  })
-})
 
 // A cache that is fresh, so the hook does not start a refresh during the test.
 /** @param {string} state @param {string | null} stateReason */

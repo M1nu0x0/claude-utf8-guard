@@ -16,12 +16,6 @@
       "title": "Notify when fixed upstream",
       "description": "Once a day, ask GitHub whether anthropics/claude-code#83033 is closed as fixed, and say so at session start so you can turn this plugin off",
       "default": true
-    },
-    "kanji_check": {
-      "type": "boolean",
-      "title": "Check Japanese kanji",
-      "description": "Hold a tool call back once when Japanese text (text with kana) contains kanji outside the 6,355 of JIS X 0208, such as a wrong neighbour or a simplified Chinese form",
-      "default": true
     }
   }
 }

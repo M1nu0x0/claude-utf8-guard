@@ -24,7 +24,7 @@ Because of [anthropics/claude-code#83033](https://github.com/anthropics/claude-c
 
 Its reporter compared runs made to write a Korean tool call as escapes with runs made to write it in UTF-8. Every run that wrote escapes, 45 of 45, broke some of its Hangul (about 3 to 5% of the syllables); the UTF-8 runs broke 1 of 30 and 0 of 30. The broken characters are all real Hangul, such as `점검` → `점깔` and `코딩` → `코딅`, so they do not stand out the way U+FFFD does. Comments report the same with Opus 5 and with Notion and Jira MCP write tools.
 
-Japanese is affected too. [#54051](https://github.com/anthropics/claude-code/issues/54051) reported `揃え` → `諿え`, `処分` → `処勭`, `側` → `侧` and `億` → `亿` (both simplified Chinese) in Notion MCP calls, and [#59649](https://github.com/anthropics/claude-code/issues/59649) reported `叩き` → `鯰し`, `再起動` → `在控` and `鳴る` → `鳥る` in AskUserQuestion. Neither confirms that escapes caused them, so this plugin checks the result, not the cause.
+Japanese is affected too. [#54051](https://github.com/anthropics/claude-code/issues/54051) reported `揃え` → `諿え`, `処分` → `処勭`, `側` → `侧` and `億` → `亿` (both simplified Chinese) in Notion MCP calls, and [#59649](https://github.com/anthropics/claude-code/issues/59649) reported `叩き` → `鯰し`, `再起動` → `在控` and `鳴る` → `鳥る` in AskUserQuestion. Neither confirms that escapes caused them. If something else did, the session-start instruction may not prevent them, and a wrong kanji is valid UTF-8 that the hook cannot catch.
 
 The answer on the Claude Code side was that the CLI decodes the escapes faithfully and cannot repair a wrong code point, and that the issue went to the model team. Most other reports of the same symptom were closed without a fix (see Related issues). Once #83033 is closed as fixed this plugin is no longer needed, and the repository will be archived. The plugin checks #83033 at session start, and CI checks it every day.
 
@@ -64,16 +64,15 @@ Claude Code decodes the JSON the model wrote before it hands the input to a hook
 
 | Symptom | Example | Check | This plugin |
 | --- | --- | --- | --- |
-| A wrong kanji lands on a rare kanji | `揃え` → `諿え`, `処分` → `処勭`, `側` → `侧` (simplified) | In text with kana, kanji outside the 6,355 of JIS X 0208 (Shift_JIS) | Catches about 66% of single wrong digits. Text with no kana (which may be Chinese) is not checked |
 | Half a surrogate pair | a lone `\uD83A`, which the API rejects with a 400 that stops the session | An unpaired U+D800 to U+DFFF | Catches |
 | A failed decode | `한�글` | U+FFFD | Catches |
 | An escape left as text | AskUserQuestion shows `\uc810\uac80` | `\uXXXX` text for Hangul, kana or CJK, in tools that are not code tools | Catches |
 | A wrong hex digit lands on another syllable | `완료` → `완릷`, `점검` → `점깔`, `잡히지` → `잡힐지` | Not checked: all 11,172 Hangul syllables are valid UTF-8, so a wrong one cannot be told from a meant one | Does not; the instruction only prevents |
-| A wrong kanji lands on a common kanji | `鳴る` → `鳥る`, `再起動` → `在控`, wrong hanzi in Chinese text | Another real character | Does not; the instruction only prevents |
+| A wrong kanji lands on another kanji | `揃え` → `諿え`, `側` → `侧` (simplified), `鳴る` → `鳥る`, `再起動` → `在控`, wrong hanzi in Chinese text | Not checked: every kanji is valid UTF-8, and Japanese uses kanji outside JIS X 0208, so a wrong one cannot be told from a meant one | Does not; the instruction only prevents |
 | A glitch mid-escape breaks the JSON | #79339 | Claude Code rejects the call before any hook runs (#93311) | Does not; the instruction only prevents |
 | A wrong syllable with no escape | `새벽` → `새벅` (#83033, 0.3 to 0.4% of runs) | Not checked | Does not |
 
-Hangul is not checked against a table. Real Korean uses syllables outside the 2,350 of KS X 1001, such as `똠방각하`, `샾`, `쏼라쏼라` or `햏자`, so a table would hold back correct text. This plugin never holds back valid UTF-8 Hangul and prevents wrong syllables with the session-start instruction instead (in #83033 runs told to write UTF-8 broke their Hangul in 1 of 30 and 0 of 30). The kanji check does stop on name kanji outside JIS X 0208. The 2010 joyo additions `剝`, `頰` and `塡`, and `髙`, common in names, are allowed in advance. Claude then reads why and sends the same call again, which goes through, or you can turn this one check off below. Tools that only read, such as Read, Glob and Grep, are not checked. In tools that handle code, such as Write, Edit and Bash, a `\uXXXX` written as text is taken as meant and not checked.
+Hangul and kanji are not checked against a table. Real text uses syllables outside the 2,350 of KS X 1001, such as `똠방각하`, `샾`, `쏼라쏼라` or `햏자`, and kanji outside the 6,355 of JIS X 0208, such as `森鷗外`, `噓`, `任俠` or `德川`, so a table would hold back correct text. This plugin never holds back valid UTF-8 and prevents wrong characters with the session-start instruction instead (in #83033 runs told to write UTF-8 broke their Hangul in 1 of 30 and 0 of 30). Tools that only read, such as Read, Glob and Grep, are not checked. In tools that handle code, such as Write, Edit and Bash, a `\uXXXX` written as text is taken as meant and not checked.
 
 ## Settings and turning it off
 
@@ -82,7 +81,6 @@ Change them under utf8-guard in `/config` (or `/plugin`). They are saved under `
 | Setting | Default | When off |
 | --- | --- | --- |
 | Notify when fixed upstream (`upstream_check`) | On | Does not ask GitHub, and shows no notice when the issue is fixed |
-| Check Japanese kanji (`kanji_check`) | On | Only the rare-kanji check in Japanese text stops |
 
 To turn the whole plugin off run `claude plugin disable utf8-guard`; to remove it, `claude plugin uninstall utf8-guard`.
 
@@ -146,13 +144,12 @@ If you find another related issue, tell us in an issue or a PR.
   marketplace.json      lists this repository as a marketplace
 plugins/utf8-guard/
   .claude-plugin/
-    plugin.json         plugin manifest, with two userConfig options
+    plugin.json         plugin manifest, with one userConfig option
   hooks/
     hooks.json          SessionStart and PreToolUse hooks (exec form, node)
     session-start.mjs   adds the instruction, the fixed notice, starts the background check
     pre-tool-use.mjs    holds back a call that fails a check, once
     check.mjs           the checks (pure functions)
-    kanji.mjs           the 6,355 kanji of JIS X 0208
     upstream.mjs        the #83033 state cache and the GitHub request
     common.mjs          reading the input, options, the data folder
   tests/                tests for node --test
@@ -178,8 +175,6 @@ cd site && npm run dev                        # local preview
 cd site && npm run og                         # per-language link-preview images (needs Playwright)
 ```
 
-`hooks/kanji.mjs` was made by decoding the EUC-JP bytes B0A1 to F4FE; the tests make it again the same way and compare.
-
 The hooks are JavaScript (`.mjs`) that Claude Code runs with `node` as they are, so there is no build step and they run on Node 18. Every file has `// @ts-check` and JSDoc types instead, and `npm run typecheck` checks them with `tsc` under `strict`. TypeScript is a dev dependency, not something installing the plugin fetches.
 
 The site is built with [Astro](https://astro.build) and the shared kit [claude-plugin-site](https://github.com/M1nu0x0/claude-plugin-site). All its words are in `site/src/site.json`, and the order of the sections is in `site/src/pages/[...lang].astro`. `npm run build` writes one page per language (`/`, `/ko/`, `/ja/`) and `sitemap.xml`, then checks them as a crawler reads them (title and description length, canonical, hreflang, Open Graph, JSON-LD, broken links and images, HTML validity) and fails on any problem. A merge to main builds and deploys it with the Pages workflow. The page's JSON-LD carries the plugin version, so a version bump redeploys the site. When the words change, set `updated` in `site/src/site.json` to that day; CI warns on a pull request that does not. When `ask`, `answer`, `ogImageLine` or `ogImageText` change, redraw `site/public/images/og*.png` with `npm run og` and commit them.
@@ -189,7 +184,7 @@ To release, merge a PR that bumps `version` in `plugins/utf8-guard/.claude-plugi
 ## Limits
 
 - Claude Code only. The hooks need Node.js 18 or later; without Node the hooks fail and check nothing (calls are not blocked).
-- Claude may not follow the session-start instruction. The hooks only see the result, so a wrong character that is itself common, and wrong hanzi in Chinese text, get through.
+- Claude may not follow the session-start instruction. The hooks only hold back broken UTF-8, so a wrong character that is another valid syllable or kanji gets through.
 - The PreToolUse hook starts one Node process for every tool call.
 - The upstream check calls the GitHub API once a day without authentication. When it fails, the last known state is kept and it tries again a day later.
 
