@@ -10,7 +10,6 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import { findProblems, reason, strings } from '../hooks/check.mjs'
-import { COMMON_HANGUL } from '../hooks/hangul.mjs'
 import { COMMON_KANJI } from '../hooks/kanji.mjs'
 import { isFixed, isStale, readCache, refresh } from '../hooks/upstream.mjs'
 
@@ -46,32 +45,31 @@ function withData(fn) {
 /** @param {import('../hooks/check.mjs').Problem[]} problems */
 const kinds = problems => problems.map(p => p.kind)
 
-// The broken words quoted in anthropics/claude-code#83033 and its comments, each beside what was meant.
-const REPORTED = [
-  ['점검도 완료된', '점깔도 완릷된'],
-  ['코딩하기', '코딅하기'],
-  ['멀쩡하게', '멀잩하게'],
-  ['잡히지', '잡힐지'],
+// Korean that a table of common syllables such as the 2,350 of KS X 1001 would hold back: real words, names,
+// onomatopoeia and slang.
+const KOREAN_OUTSIDE_KS_X_1001 = [
+  '똠방각하라는 드라마를 아시나요?',
+  '샾(#) 기호는 빼 주세요.',
+  '퀭한 눈으로 쏼라쏼라 떠들었다.',
+  '쌰쌰, 롹 음악, 뜌땨',
+  '햏자, 뷁, 읭?, 앜ㅋㅋ, 뭥미, 흫',
+  '이믜 님, 최똠 님',
 ]
-
-test('the table is exactly the 2,350 syllables EUC-KR encodes', () => {
-  const bytes = []
-  for (let lead = 0xb0; lead <= 0xc8; lead++) for (let trail = 0xa1; trail <= 0xfe; trail++) bytes.push(lead, trail)
-  const decoded = new TextDecoder('euc-kr').decode(new Uint8Array(bytes))
-  assert.equal(Array.from(COMMON_HANGUL).length, 2350)
-  assert.equal(COMMON_HANGUL, decoded)
-})
 
 test('ordinary Korean, Japanese and Chinese pass', () => {
   for (const text of ['점검도 완료된 코드입니다.', '日本語の文章です。', '这是中文句子。', '這是繁體中文。', 'mixed 한글 and ASCII'])
     assert.deepEqual(findProblems('AskUserQuestion', { question: text }), [], text)
 })
 
-test('the broken syllables reported in #83033 are caught when they fall outside KS X 1001', () => {
-  const caught = REPORTED.filter(([, broken]) => findProblems('TodoWrite', { todos: [{ content: broken }] }).length)
-  assert.deepEqual(caught.map(([, b]) => b), ['점깔도 완릷된', '코딅하기', '멀잩하게'])
-  // 힐 in 잡힐지 is a common syllable: a wrong digit that lands on a real word cannot be told apart.
-  for (const [meant] of REPORTED) assert.deepEqual(findProblems('TodoWrite', { todos: [{ content: meant }] }), [], meant)
+test('every Hangul syllable passes in every tool: valid UTF-8 is never held back as Korean', () => {
+  for (const text of KOREAN_OUTSIDE_KS_X_1001)
+    for (const tool of ['AskUserQuestion', 'TodoWrite', 'Write', 'Edit', 'Bash', 'mcp__notion__update'])
+      assert.deepEqual(findProblems(tool, { content: text }), [], `${tool}: ${text}`)
+  let all = ''
+  for (let cp = 0xac00; cp <= 0xd7a3; cp++) all += String.fromCodePoint(cp)
+  assert.deepEqual(findProblems('AskUserQuestion', { question: all }), [])
+  // The syllables #83033 quotes are valid UTF-8 too; the session-start instruction prevents them instead.
+  assert.deepEqual(findProblems('TodoWrite', { todos: [{ content: '점깔도 완릷된' }] }), [])
 })
 
 // Wrong kanji reported in anthropics/claude-code#54051 (Notion MCP) and #59649 (AskUserQuestion), each beside what
@@ -116,9 +114,9 @@ test('kanji Japanese uses that JIS X 0208 lacks pass: 2010 joyo additions and �
   assert.deepEqual(findProblems('AskUserQuestion', { question: '剝がす、頰、装塡、髙橋さん' }), [])
 })
 
-test('the Japanese check can be turned off; the Korean one does not depend on it', () => {
+test('the Japanese check can be turned off; the other checks do not depend on it', () => {
   assert.deepEqual(findProblems('AskUserQuestion', { question: '表記を諿えますか' }, { kanji: false }), [])
-  assert.deepEqual(kinds(findProblems('AskUserQuestion', { question: '완릷된' }, { kanji: false })), ['rare-hangul'])
+  assert.deepEqual(kinds(findProblems('AskUserQuestion', { question: '완\uFFFD된' }, { kanji: false })), ['replacement'])
 })
 
 test('the hook sources keep escapes as escapes, not the characters they stand for', () => {
@@ -131,16 +129,16 @@ test('the hook sources keep escapes as escapes, not the characters they stand fo
   }
 })
 
-test('the reason names the syllable, its code point and the word around it', () => {
-  const problems = findProblems('AskUserQuestion', { questions: [{ question: '점깔도 완릷된 상태인가요?' }] })
-  assert.deepEqual(kinds(problems), ['rare-hangul'])
-  assert.match(problems[0].items[0], /^릷 \(U\+B9B7\) in ".*완릷된.*"$/)
+test('the reason names the character, its code point and the word around it', () => {
+  const problems = findProblems('AskUserQuestion', { questions: [{ question: '点検は完了した、侧に寄せますか？' }] })
+  assert.deepEqual(kinds(problems), ['rare-kanji'])
+  assert.match(problems[0].items[0], /^侧 \(U\+4FA7\) in ".*侧に寄せ.*"$/)
   assert.match(reason('AskUserQuestion', problems), /#83033[\s\S]*send the same call again unchanged/)
 })
 
 test('a lone surrogate is caught in every tool that writes, code included', () => {
   for (const tool of ['AskUserQuestion', 'Write', 'Bash', 'mcp__notion__update'])
-    assert.deepEqual(kinds(findProblems(tool, { text: 'a\uD83Ab' }, { hangul: false })), ['lone-surrogate'], tool)
+    assert.deepEqual(kinds(findProblems(tool, { text: 'a\uD83Ab' })), ['lone-surrogate'], tool)
   // A pair is a real character.
   assert.deepEqual(findProblems('Write', { content: 'emoji 😀' }), [])
 })
@@ -159,12 +157,7 @@ test('a \\uXXXX written out as text is caught outside code, and only when it sta
 })
 
 test('tools that only read are not checked', () => {
-  assert.deepEqual(findProblems('Grep', { pattern: '릷\uD83A' }), [])
-})
-
-test('the Korean check can be turned off; the others stay on', () => {
-  assert.deepEqual(findProblems('TodoWrite', { todos: [{ content: '완릷된' }] }, { hangul: false }), [])
-  assert.deepEqual(kinds(findProblems('TodoWrite', { todos: [{ content: '\uFFFD' }] }, { hangul: false })), ['replacement'])
+  assert.deepEqual(findProblems('Grep', { pattern: '侧に\uD83A' }), [])
 })
 
 test('strings are collected from nested objects and arrays', () => {
@@ -173,14 +166,14 @@ test('strings are collected from nested objects and arrays', () => {
 
 test('PreToolUse holds a broken call back once and lets the same call through the second time', () => {
   withData(data => {
-    const input = { session_id: 's1', tool_name: 'AskUserQuestion', tool_input: { question: '완릷된' } }
+    const input = { session_id: 's1', tool_name: 'AskUserQuestion', tool_input: { question: '완\uFFFD된' } }
     const first = run('pre-tool-use.mjs', input, { data })
     assert.equal(first.hookSpecificOutput.permissionDecision, 'deny')
-    assert.match(first.hookSpecificOutput.permissionDecisionReason, /릷/)
+    assert.match(first.hookSpecificOutput.permissionDecisionReason, /U\+FFFD in "완\uFFFD된"/)
     assert.match(first.systemMessage, /utf8-guard held back one AskUserQuestion call/)
     assert.equal(run('pre-tool-use.mjs', input, { data }), null)
     // A changed call is a new call.
-    const changed = { ...input, tool_input: { question: '완릷된!' } }
+    const changed = { ...input, tool_input: { question: '완\uFFFD된!' } }
     assert.equal(run('pre-tool-use.mjs', changed, { data }).hookSpecificOutput.permissionDecision, 'deny')
     // Another session starts over.
     assert.equal(run('pre-tool-use.mjs', { ...input, session_id: 's2' }, { data }).hookSpecificOutput.permissionDecision, 'deny')
@@ -189,16 +182,16 @@ test('PreToolUse holds a broken call back once and lets the same call through th
 
 test('PreToolUse prints nothing for a clean call', () => {
   withData(data => {
-    assert.equal(run('pre-tool-use.mjs', { session_id: 's', tool_name: 'Write', tool_input: { content: '정상 문장' } }, { data }), null)
+    assert.equal(run('pre-tool-use.mjs', { session_id: 's', tool_name: 'Write', tool_input: { content: '정상 문장, 샾과 똠' } }, { data }), null)
     assert.equal(existsSync(join(data, 'held-s.txt')), false)
   })
 })
 
-test('PreToolUse reads the Korean option from CLAUDE_PLUGIN_OPTION_HANGUL_CHECK', () => {
+test('PreToolUse reads the Japanese option from CLAUDE_PLUGIN_OPTION_KANJI_CHECK', () => {
   withData(data => {
-    const input = { session_id: 's', tool_name: 'TodoWrite', tool_input: { todos: [{ content: '완릷된' }] } }
-    assert.equal(run('pre-tool-use.mjs', input, { data, env: { CLAUDE_PLUGIN_OPTION_HANGUL_CHECK: 'false' } }), null)
-    assert.notEqual(run('pre-tool-use.mjs', input, { data, env: { CLAUDE_PLUGIN_OPTION_HANGUL_CHECK: 'true' } }), null)
+    const input = { session_id: 's', tool_name: 'TodoWrite', tool_input: { todos: [{ content: '侧に寄せますか' }] } }
+    assert.equal(run('pre-tool-use.mjs', input, { data, env: { CLAUDE_PLUGIN_OPTION_KANJI_CHECK: 'false' } }), null)
+    assert.notEqual(run('pre-tool-use.mjs', input, { data, env: { CLAUDE_PLUGIN_OPTION_KANJI_CHECK: 'true' } }), null)
   })
 })
 

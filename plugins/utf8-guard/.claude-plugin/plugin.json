@@ -17,12 +17,6 @@
       "description": "Once a day, ask GitHub whether anthropics/claude-code#83033 is closed as fixed, and say so at session start so you can turn this plugin off",
       "default": true
     },
-    "hangul_check": {
-      "type": "boolean",
-      "title": "Check Korean syllables",
-      "description": "Hold a tool call back once when it contains Hangul syllables outside the 2,350 of KS X 1001, the usual result of a broken escape",
-      "default": true
-    },
     "kanji_check": {
       "type": "boolean",
       "title": "Check Japanese kanji",

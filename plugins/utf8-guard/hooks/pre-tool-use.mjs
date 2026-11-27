@@ -1,6 +1,6 @@
 // @ts-check
 // PreToolUse: holds a tool call back once when its input looks broken by a \uXXXX escape, and tells the model why.
-// The same call sent again unchanged goes through, so a rare syllable that was meant (a name, slang) costs one
+// The same call sent again unchanged goes through, so a rare kanji that was meant (a name) costs one
 // round trip and never blocks the work.
 import { createHash } from 'node:crypto'
 import { appendFileSync, existsSync, readFileSync } from 'node:fs'
@@ -11,10 +11,7 @@ import { dataDir, option, print, readInput } from './common.mjs'
 
 const input = await readInput()
 const tool = input.tool_name ?? ''
-const problems = findProblems(tool, input.tool_input ?? {}, {
-  hangul: option('hangul_check'),
-  kanji: option('kanji_check'),
-})
+const problems = findProblems(tool, input.tool_input ?? {}, { kanji: option('kanji_check') })
 if (problems.length === 0) process.exit(0)
 
 // Calls held back in this session, one hash per line.

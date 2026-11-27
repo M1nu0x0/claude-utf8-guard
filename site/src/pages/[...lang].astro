@@ -77,9 +77,7 @@ const badge = (n: number) => `https://img.shields.io/github/issues/detail/state/
     <h2 id="checks" set:html={t.checksTitle} />
     <p set:html={t.checksLead} />
     <dl class="os">
-      {lang === 'ja' && <><dt set:html={t.checkKanjiTerm} /><dd set:html={t.checkKanji} /></>}
-      <dt set:html={t.checkHangulTerm} /><dd set:html={t.checkHangul} />
-      {lang !== 'ja' && <><dt set:html={t.checkKanjiTerm} /><dd set:html={t.checkKanji} /></>}
+      <dt set:html={t.checkKanjiTerm} /><dd set:html={t.checkKanji} />
       <dt set:html={t.checkSurrogateTerm} /><dd set:html={t.checkSurrogate} />
       <dt><code>U+FFFD</code></dt><dd set:html={t.checkFffd} />
       <dt><code>\uXXXX</code></dt><dd set:html={t.checkLiteral} />
